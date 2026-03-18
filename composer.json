@@ -1,0 +1,20 @@
+{
+    "name": "seo-platform/internal-linking-analyzer",
+    "description": "Intelligence du maillage interne : PageRank, cannibalisation, diversité ancres, profondeur, GSC",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0"
+    },
+    "autoload": {
+        "files": ["functions.php"]
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

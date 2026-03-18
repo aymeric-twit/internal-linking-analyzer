@@ -1,0 +1,8 @@
+# Internal Linking Analyzer — Limites PHP pour gros fichiers (Apache)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 2G
+    php_value post_max_size 2G
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+</IfModule>
