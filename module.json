@@ -75,5 +75,6 @@
     ],
     "credits_par_analyse": 2,
     "units_per_credit": 1,
-    "unit_label": "analyses"
+    "unit_label": "analyses",
+    "periode_quota": "mois"
 }
