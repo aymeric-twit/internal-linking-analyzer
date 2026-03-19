@@ -12,17 +12,68 @@
     "env_keys": [],
     "languages": [],
     "routes": [
-        { "path": "process.php", "method": "POST", "type": "ajax" },
-        { "path": "upload_chunk.php", "method": "POST", "type": "ajax" },
-        { "path": "server_info.php", "method": "GET", "type": "ajax" },
-        { "path": "worker.php", "method": "GET", "type": "ajax" },
-        { "path": "progress.php", "method": "GET", "type": "ajax" },
-        { "path": "analyse.php", "method": "POST", "type": "ajax" },
-        { "path": "results.php", "method": "GET", "type": "ajax" },
-        { "path": "download.php", "method": "GET", "type": "ajax" },
-        { "path": "imports.php", "method": "GET", "type": "ajax" },
-        { "path": "imports.php", "method": "POST", "type": "ajax" },
-        { "path": "advanced_analysis.php", "method": "GET", "type": "ajax" },
-        { "path": "gsc_analysis.php", "method": "GET", "type": "ajax" }
-    ]
+        {
+            "path": "process.php",
+            "method": "POST",
+            "type": "ajax"
+        },
+        {
+            "path": "upload_chunk.php",
+            "method": "POST",
+            "type": "ajax"
+        },
+        {
+            "path": "server_info.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "worker.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "progress.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "analyse.php",
+            "method": "POST",
+            "type": "ajax"
+        },
+        {
+            "path": "results.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "download.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "imports.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "imports.php",
+            "method": "POST",
+            "type": "ajax"
+        },
+        {
+            "path": "advanced_analysis.php",
+            "method": "GET",
+            "type": "ajax"
+        },
+        {
+            "path": "gsc_analysis.php",
+            "method": "GET",
+            "type": "ajax"
+        }
+    ],
+    "credits_par_analyse": 2,
+    "units_per_credit": 1,
+    "unit_label": "analyses"
 }
