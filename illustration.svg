@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">
+  <defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="#66b2b2"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="#fbb03b"/>
+    </marker>
+  </defs>
+  <rect width="200" height="140" fill="#f8fafc" rx="8"/>
+  <!-- Nodes -->
+  <circle cx="40" cy="35" r="14" fill="#004c4c"/>
+  <circle cx="100" cy="25" r="12" fill="#004c4c" opacity="0.85"/>
+  <circle cx="160" cy="40" r="14" fill="#004c4c"/>
+  <circle cx="55" cy="90" r="12" fill="#004c4c" opacity="0.85"/>
+  <circle cx="130" cy="100" r="14" fill="#dc3545" opacity="0.8"/>
+  <circle cx="160" cy="105" r="4" fill="#fbb03b" opacity="0.6"/>
+  <!-- Inner dots (page icons) -->
+  <rect x="34" y="30" width="12" height="10" rx="2" fill="#e8f4f4" opacity="0.8"/>
+  <rect x="94" y="20" width="12" height="10" rx="2" fill="#e8f4f4" opacity="0.8"/>
+  <rect x="154" y="35" width="12" height="10" rx="2" fill="#e8f4f4" opacity="0.8"/>
+  <rect x="49" y="85" width="12" height="10" rx="2" fill="#e8f4f4" opacity="0.8"/>
+  <rect x="124" y="95" width="12" height="10" rx="2" fill="#fff" opacity="0.8"/>
+  <!-- Connections with arrows -->
+  <line x1="54" y1="35" x2="86" y2="27" stroke="#66b2b2" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="112" y1="27" x2="146" y2="38" stroke="#66b2b2" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="42" y1="49" x2="50" y2="78" stroke="#66b2b2" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="67" y1="92" x2="116" y2="98" stroke="#fbb03b" stroke-width="2" marker-end="url(#arrow-warn)" stroke-dasharray="4,3"/>
+  <line x1="155" y1="54" x2="138" y2="87" stroke="#fbb03b" stroke-width="2" marker-end="url(#arrow-warn)" stroke-dasharray="4,3"/>
+  <line x1="96" y1="37" x2="60" y2="78" stroke="#66b2b2" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6"/>
+  <!-- Cannibalization warning -->
+  <path d="M122,78 L130,66 L138,78 Z" fill="#fbb03b" opacity="0.8"/>
+  <circle cx="130" cy="74" r="1.5" fill="#fff"/>
+</svg>

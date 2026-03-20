@@ -23,7 +23,7 @@ nettoyerAnciensImports();
 
 <!-- Navbar : supprimée en mode embedded -->
 <nav class="navbar mb-4">
-    <div class="container">
+    <div class="container-fluid px-lg-4 py-4">
         <span class="navbar-brand mb-0 h1">
             <i class="bi bi-link-45deg"></i> Internal Linking Analyzer
             <span class="d-block d-sm-inline ms-sm-2">Intelligence du maillage interne</span>
@@ -31,7 +31,7 @@ nettoyerAnciensImports();
     </div>
 </nav>
 
-<div class="container py-4">
+<div class="container-fluid px-lg-4 py-4">
 
     <!-- ══════════════════════════════════════════════ -->
     <!-- IMPORTS PRÉCÉDENTS                            -->

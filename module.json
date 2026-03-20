@@ -4,6 +4,7 @@
     "description": "Intelligence du maillage interne : cannibalisation, PageRank, orphelines, diversité ancres",
     "version": "2.0.0",
     "icon": "bi-link-45deg",
+    "illustration": "illustration.svg",
     "entry_point": "index.php",
     "sort_order": 60,
     "quota_mode": "form_submit",
