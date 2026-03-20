@@ -178,6 +178,11 @@ $donneesResultats = [
 $cheminResultats = $dossierImport . '/resultats.json';
 file_put_contents($cheminResultats, json_encode($donneesResultats, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
+// Décompter les crédits
+if (class_exists(\Platform\Module\Quota::class)) {
+    \Platform\Module\Quota::track('anchors-cannibalization');
+}
+
 repondreJson([
     'statut' => 'analyse_terminee',
     'nbCouples' => count($resultats),
