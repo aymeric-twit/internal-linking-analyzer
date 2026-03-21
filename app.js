@@ -2185,7 +2185,7 @@ function rendreGscInsights() {
     if (!conteneur) return;
 
     if (!etat.gscDisponible || etat.gscSites.length === 0) {
-        conteneur.innerHTML = '<div class="status-msg status-error">Search Console non disponible. Connectez-vous via le plugin Search Console.</div>';
+        conteneur.innerHTML = '<div class="status-msg status-error">Search Console non disponible. Connectez-vous via le module Search Console.</div>';
         return;
     }
 
