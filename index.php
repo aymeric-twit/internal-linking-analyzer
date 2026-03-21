@@ -58,6 +58,8 @@ nettoyerAnciensImports();
     <!-- ══════════════════════════════════════════════ -->
     <!-- ÉTAPE 1 : Upload fichier liens                -->
     <!-- ══════════════════════════════════════════════ -->
+    <div class="row g-4" id="rowUploadLiens">
+    <div class="col-md-8">
     <div id="sectionUploadLiens" class="card mb-4 d-none">
         <div class="card-header">
             <h6 class="mb-0"><i class="bi bi-upload me-2"></i>Étape 1 — Import du fichier de liens internes</h6>
@@ -131,14 +133,40 @@ nettoyerAnciensImports();
 
             <!-- Bouton importer -->
             <div class="mt-4">
-            <div id="platformCreditsSlot" class="mb-3"></div>
-
                 <button id="btnImporter" class="btn btn-primary" disabled>
                     <i class="bi bi-database-add me-1"></i> Importer dans la base
                 </button>
             </div>
         </div>
     </div>
+    </div><!-- /.col-md-8 -->
+    <div class="col-md-4" id="helpPanel">
+        <div id="platformCreditsSlot"></div>
+        <div class="config-help-panel">
+            <div class="help-title mb-2">
+                <i class="bi bi-info-circle me-1"></i> Comment ça marche
+            </div>
+            <ul>
+                <li>Importez un export CSV de liens internes (Screaming Frog : <strong>"All Inlinks"</strong>).</li>
+                <li>Mappez les colonnes : <strong>Source</strong>, <strong>Destination</strong>, <strong>Ancre</strong> (mapping flexible).</li>
+                <li>Lancez l'analyse pour détecter les problèmes de maillage interne.</li>
+            </ul>
+            <hr>
+            <div class="help-title mb-0" role="button" data-bs-toggle="collapse" data-bs-target="#helpFonctionnalites" aria-expanded="false">
+                <i class="bi bi-lightbulb me-1"></i> Fonctionnalités <i class="bi bi-chevron-down help-chevron ms-1"></i>
+            </div>
+            <div class="collapse" id="helpFonctionnalites">
+                <ul class="mt-2 mb-0">
+                    <li>Cannibalisation d'ancres : même texte d'ancre vers plusieurs pages</li>
+                    <li>Calcul du PageRank interne par page</li>
+                    <li>Détection des pages orphelines (sans liens entrants)</li>
+                    <li>Analyse de la diversité des ancres</li>
+                    <li>Support fichiers volumineux (upload par chunks)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    </div><!-- /.row -->
 
     <!-- ══════════════════════════════════════════════ -->
     <!-- PROGRESSION UPLOAD + IMPORT                   -->

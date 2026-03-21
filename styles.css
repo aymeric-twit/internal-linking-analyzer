@@ -741,6 +741,17 @@ a:hover { color: var(--brand-dark); }
     vertical-align: middle;
 }
 
+/* -- Panneau d'aide --------------------------------------------------- */
+.config-help-panel { background: var(--brand-teal-light); border-left: 3px solid var(--brand-gold); border-radius: 0.75rem; padding: 1.25rem; font-size: 0.85rem; line-height: 1.6; }
+.config-help-panel ul { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.config-help-panel li { margin-bottom: 0.35rem; }
+.config-help-panel hr { border-color: rgba(0,76,76,0.1); margin: 0.75rem 0; }
+.help-title { font-weight: 600; color: var(--brand-dark); font-size: 0.9rem; }
+.help-title[role="button"] { cursor: pointer; }
+.help-title[role="button"]:hover { color: var(--brand-teal); }
+.help-chevron { font-size: 0.7rem; transition: transform 0.3s; }
+.help-title[aria-expanded="true"] .help-chevron { transform: rotate(180deg); }
+
 /* ── Responsive ───────────────────────────────────────── */
 
 @media (max-width: 768px) {

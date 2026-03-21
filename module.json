@@ -74,7 +74,9 @@
             "type": "ajax"
         }
     ],
-    "credits_par_analyse": 2,
+    "credits_par_analyse": 1,
     "units_per_credit": 1,
-    "periode_quota": "mois"
+    "periode_quota": "mois",
+    "unites_par_credit": 1,
+    "unite_label": null
 }
