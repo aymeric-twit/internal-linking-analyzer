@@ -101,6 +101,7 @@ nettoyerAnciensImports();
                 <div id="apercuCsv" class="table-responsive mb-3"></div>
                 <div class="row g-3">
                     <div class="col-md-4">
+                    <div id="platformCreditsSlot"></div>
                         <label for="colSource" class="form-label">Colonne Source</label>
                         <select class="form-select" id="colSource"></select>
                     </div>
