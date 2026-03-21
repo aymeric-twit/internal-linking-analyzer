@@ -101,7 +101,6 @@ nettoyerAnciensImports();
                 <div id="apercuCsv" class="table-responsive mb-3"></div>
                 <div class="row g-3">
                     <div class="col-md-4">
-                    <div id="platformCreditsSlot"></div>
                         <label for="colSource" class="form-label">Colonne Source</label>
                         <select class="form-select" id="colSource"></select>
                     </div>
@@ -132,6 +131,8 @@ nettoyerAnciensImports();
 
             <!-- Bouton importer -->
             <div class="mt-4">
+            <div id="platformCreditsSlot" class="mb-3"></div>
+
                 <button id="btnImporter" class="btn btn-primary" disabled>
                     <i class="bi bi-database-add me-1"></i> Importer dans la base
                 </button>
