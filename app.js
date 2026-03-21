@@ -830,6 +830,11 @@ function demarrerPolling() {
                 if (data.statut === 'import_termine') {
                     clearInterval(etat.pollingTimer);
                     etat.pollingTimer = null;
+
+                    // Auto-collapse config
+                    var configBody = document.getElementById('configBody');
+                    if (configBody) { bootstrap.Collapse.getOrCreateInstance(configBody, {toggle:false}).hide(); }
+
                     afficherImportTermine(data);
                 } else if (data.statut === 'erreur') {
                     clearInterval(etat.pollingTimer);

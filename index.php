@@ -61,9 +61,11 @@ nettoyerAnciensImports();
     <div class="row g-4" id="rowUploadLiens">
     <div class="col-md-8">
     <div id="sectionUploadLiens" class="card mb-4 d-none">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0"><i class="bi bi-upload me-2"></i>Étape 1 — Import du fichier de liens internes</h6>
+            <button type="button" class="config-toggle" data-bs-toggle="collapse" data-bs-target="#configBody" aria-expanded="true"><i class="bi bi-chevron-down"></i></button>
         </div>
+        <div class="collapse show" id="configBody">
         <div class="card-body">
             <p class="text-muted mb-3" style="font-size:0.85rem;">
                 Importez votre export CSV de liens internes (ex : Screaming Frog "All Inlinks").
@@ -137,6 +139,7 @@ nettoyerAnciensImports();
                     <i class="bi bi-database-add me-1"></i> Importer dans la base
                 </button>
             </div>
+        </div>
         </div>
     </div>
     </div><!-- /.col-md-8 -->
