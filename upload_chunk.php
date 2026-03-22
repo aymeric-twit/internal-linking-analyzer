@@ -203,7 +203,14 @@ if ($action === 'assemble') {
     ]);
 
     // Lancer le worker en arrière-plan (avec userId)
+    // PHP_BINARY retourne php-fpm en contexte FPM — utiliser le CLI
     $phpBin = PHP_BINARY;
+    if (str_contains($phpBin, 'fpm')) {
+        $phpBin = preg_replace('/fpm\d*/', 'cli', $phpBin) ?: '/usr/bin/php';
+        if (!file_exists($phpBin)) {
+            $phpBin = trim(shell_exec('which php8.3 2>/dev/null') ?: shell_exec('which php 2>/dev/null') ?: '/usr/bin/php');
+        }
+    }
     $workerScript = __DIR__ . '/worker.php';
     $commande = sprintf(
         '%s %s %s %d %d %d %d %s %s %d > %s 2>&1 &',

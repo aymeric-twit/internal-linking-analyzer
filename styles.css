@@ -390,11 +390,13 @@ body {
 
 .apercu-csv {
     font-size: 0.8rem;
-    max-height: 200px;
+    max-height: 260px;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .apercu-csv table {
     font-size: 0.8rem;
+    min-width: max-content;
 }
 .apercu-csv th {
     background: var(--bg-card-alt);

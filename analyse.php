@@ -178,9 +178,10 @@ $donneesResultats = [
 $cheminResultats = $dossierImport . '/resultats.json';
 file_put_contents($cheminResultats, json_encode($donneesResultats, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
-// Décompter les crédits
+// Décompter les crédits (par nombre de pages distinctes analysées)
 if (class_exists(\Platform\Module\Quota::class)) {
-    \Platform\Module\Quota::track('anchors-cannibalization');
+    $nbPagesDistinctes = (int) $db->query('SELECT COUNT(*) FROM (SELECT source AS url FROM liens UNION SELECT destination AS url FROM liens)')->fetchColumn();
+    \Platform\Module\Quota::track('internal-linking-analyzer', max(1, $nbPagesDistinctes));
 }
 
 repondreJson([
