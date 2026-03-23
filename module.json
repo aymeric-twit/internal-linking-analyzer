@@ -11,7 +11,7 @@
     "default_quota": 100,
     "display_mode": "embedded",
     "env_keys": [],
-    "languages": [],
+    "languages": ["fr", "en"],
     "routes": [
         {
             "path": "process.php",

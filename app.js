@@ -4,6 +4,60 @@
 
 const baseUrl = window.MODULE_BASE_URL || '.';
 
+// ── i18n ─────────────────────────────────────────────────
+
+var langueActuelle = (function () {
+    if (typeof window.PLATFORM_LANG === 'string' && window.PLATFORM_LANG) return window.PLATFORM_LANG;
+    try { var p = new URLSearchParams(window.location.search).get('lg'); if (p) return p; } catch (_) {}
+    try { var s = localStorage.getItem('lang'); if (s) return s; } catch (_) {}
+    return 'fr';
+})();
+
+function t(cle, params) {
+    var trad = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[langueActuelle] && TRANSLATIONS[langueActuelle][cle])
+        ? TRANSLATIONS[langueActuelle][cle]
+        : (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS.fr && TRANSLATIONS.fr[cle])
+            ? TRANSLATIONS.fr[cle]
+            : cle;
+    if (params) {
+        Object.keys(params).forEach(function (k) {
+            trad = trad.replace(new RegExp('\\{' + k + '\\}', 'g'), params[k]);
+        });
+    }
+    return trad;
+}
+
+function traduirePage() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        el.innerHTML = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+        el.title = t(el.getAttribute('data-i18n-title'));
+    });
+}
+
+function initLangueSelect() {
+    var sel = document.getElementById('lang-select');
+    if (sel) {
+        sel.value = langueActuelle;
+        sel.addEventListener('change', function () {
+            changerLangue(this.value);
+        });
+    }
+    window.addEventListener('platform:lang', function (e) {
+        if (e.detail && e.detail.lang) changerLangue(e.detail.lang);
+    });
+}
+
+function changerLangue(lg) {
+    langueActuelle = lg;
+    try { localStorage.setItem('lang', lg); } catch (_) {}
+    traduirePage();
+}
+
 // ── État global ──────────────────────────────────────────
 const etat = {
     jobId: null,
@@ -34,7 +88,7 @@ function getCsrfToken() {
 }
 
 function formaterNombre(n) {
-    return Number(n).toLocaleString('fr-FR');
+    return Number(n).toLocaleString(langueActuelle === 'en' ? 'en-US' : 'fr-FR');
 }
 
 function formaterTaille(octets) {
@@ -147,7 +201,7 @@ function construireKpi(valeur, label, sub, classe) {
 function rendreUrlCopiable(url) {
     return '<span class="url-copiable" title="' + escapeHtml(url) + '">' +
         '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + tronquerUrl(url) + '</a>' +
-        '<button class="btn-copier" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + escapeHtml(url).replace(/'/g, "\\'") + '\')" title="Copier"><i class="bi bi-clipboard"></i></button>' +
+        '<button class="btn-copier" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + escapeHtml(url).replace(/'/g, "\\'") + '\')" title="' + t('btn.copier') + '"><i class="bi bi-clipboard"></i></button>' +
         '</span>';
 }
 
@@ -171,14 +225,13 @@ function classeScoreSante(score) {
 function fetchJson(url, options, etape) {
     return fetch(url, options)
         .catch(function() {
-            throw new Error('[' + etape + '] Connexion au serveur impossible (' + url + ')');
+            throw new Error('[' + etape + '] ' + t('error.connexion') + ' (' + url + ')');
         })
         .then(function(response) {
             var contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
                 throw new Error(
-                    '[' + etape + '] Le serveur a répondu du HTML au lieu de JSON (HTTP ' +
-                    response.status + '). Vérifiez que la route est bien déclarée dans module.json.'
+                    '[' + etape + '] ' + t('error.html_json', {status: response.status})
                 );
             }
             return response.json().then(function(data) {
@@ -213,7 +266,7 @@ function creerTableauPagine(options) {
     var colonnes = options.colonnes;
     var parPage = options.parPage || 50;
     var donnees = options.donnees || [];
-    var placeholder = options.placeholder || 'Filtrer…';
+    var placeholder = options.placeholder || t('table.filtrer');
     var filtrer = options.filtrer || null;
     var exportNom = options.exportNom || 'export.csv';
     var onClic = options.onClic || null;
@@ -249,12 +302,12 @@ function creerTableauPagine(options) {
         btnRegex.className = 'btn btn-outline-secondary btn-regex';
         btnRegex.type = 'button';
         btnRegex.textContent = '.*';
-        btnRegex.title = 'Activer le mode regex';
+        btnRegex.title = t('table.regex_activer');
         btnRegex.addEventListener('click', function() {
             modeRegex = !modeRegex;
             btnRegex.classList.toggle('active', modeRegex);
-            btnRegex.title = modeRegex ? 'Désactiver le mode regex' : 'Activer le mode regex';
-            inputFiltre.placeholder = modeRegex ? 'Regex… ex: ^/blog' : placeholder;
+            btnRegex.title = modeRegex ? t('table.regex_desactiver') : t('table.regex_activer');
+            inputFiltre.placeholder = modeRegex ? t('table.regex_placeholder') : placeholder;
             inputFiltre.dispatchEvent(new Event('input'));
         });
         groupeFiltre.appendChild(btnRegex);
@@ -322,10 +375,10 @@ function creerTableauPagine(options) {
     navPag.className = 'd-flex justify-content-between align-items-center mt-3';
     var btnPrev = document.createElement('button');
     btnPrev.className = 'btn btn-sm btn-outline-secondary';
-    btnPrev.innerHTML = '<i class="bi bi-chevron-left"></i> Précédent';
+    btnPrev.innerHTML = t('btn.precedent');
     var btnNext = document.createElement('button');
     btnNext.className = 'btn btn-sm btn-outline-secondary';
-    btnNext.innerHTML = 'Suivant <i class="bi bi-chevron-right"></i>';
+    btnNext.innerHTML = t('btn.suivant');
     var labelPage = document.createElement('small');
     labelPage.className = 'text-muted';
 
@@ -412,7 +465,7 @@ function creerTableauPagine(options) {
             var td = document.createElement('td');
             td.colSpan = colonnes.length;
             td.className = 'text-center text-muted py-4';
-            td.textContent = 'Aucun résultat.';
+            td.textContent = t('table.aucun_resultat');
             tr.appendChild(td);
             tbody.appendChild(tr);
         } else {
@@ -438,8 +491,8 @@ function creerTableauPagine(options) {
             }
         }
 
-        infoPagination.textContent = donneesFiltrees.length + ' résultat' + (donneesFiltrees.length > 1 ? 's' : '');
-        labelPage.textContent = 'Page ' + (page + 1) + ' / ' + nbPages;
+        infoPagination.textContent = t('table.resultats', {n: donneesFiltrees.length, s: donneesFiltrees.length > 1 ? 's' : ''});
+        labelPage.textContent = t('table.page', {current: page + 1, total: nbPages});
         btnPrev.disabled = page <= 0;
         btnNext.disabled = page >= nbPages - 1;
 
@@ -543,7 +596,7 @@ function initialiserDropZoneLiens() {
 function selectionnerFichierLiens(fichier) {
     var ext = fichier.name.split('.').pop().toLowerCase();
     if (ext !== 'csv' && ext !== 'txt') {
-        alert('Veuillez sélectionner un fichier CSV (.csv ou .txt).');
+        alert(t('upload.erreur_format'));
         return;
     }
 
@@ -620,7 +673,7 @@ function remplirSelectsMapping(options, defSource, defDest, defAncre) {
 
     // Populate filtre column selector
     var selectFiltre = document.getElementById('colFiltre');
-    selectFiltre.innerHTML = '<option value="">— Aucun filtre —</option>';
+    selectFiltre.innerHTML = '<option value="">' + t('mapping.aucun_filtre') + '</option>';
     options.forEach(function(opt, i) {
         var o = document.createElement('option');
         o.value = i;
@@ -641,7 +694,7 @@ function lancerImport() {
     } else if (etat.fichierLiens) {
         lancerImportChunked(etat.fichierLiens);
     } else {
-        alert('Veuillez sélectionner un fichier ou saisir un chemin serveur.');
+        alert(t('upload.erreur_vide'));
         return;
     }
 }
@@ -676,7 +729,7 @@ function lancerImportChunked(fichier) {
     document.getElementById('btnImporter').disabled = true;
     afficherSection('sectionProgression');
     afficherSection('barreUpload');
-    mettreAJourBarreUpload(0, 'Détection des limites serveur…');
+    mettreAJourBarreUpload(0, t('progress.detection_limites'));
 
     var csrfToken = getCsrfToken();
 
@@ -706,7 +759,7 @@ function demarrerUploadChunked(fichier, csrfToken) {
     var nbChunks = Math.ceil(fichier.size / tailleChunk);
 
     mettreAJourBarreUpload(0,
-        'Envoi en ' + nbChunks + ' morceaux de ' + formaterTaille(tailleChunk)
+        t('progress.envoi_morceaux', {nb: nbChunks, taille: formaterTaille(tailleChunk)})
     );
 
     var formInit = new FormData();
@@ -722,7 +775,7 @@ function demarrerUploadChunked(fichier, csrfToken) {
             return envoyerChunks(fichier, data.jobId, nbChunks, csrfToken);
         })
         .then(function() {
-            mettreAJourBarreUpload(100, 'Assemblage du fichier…');
+            mettreAJourBarreUpload(100, t('progress.assemblage'));
             return assemblerEtLancer(etat.jobId, csrfToken);
         })
         .then(function() {
@@ -754,7 +807,7 @@ function envoyerChunks(fichier, jobId, nbChunks, csrfToken) {
         var envoye = Math.min(fin, fichier.size);
         mettreAJourBarreUpload(pct,
             formaterTaille(envoye) + ' / ' + formaterTaille(fichier.size) +
-            ' — morceau ' + numChunk + '/' + nbChunks
+            ' — ' + t('progress.morceau') + ' ' + numChunk + '/' + nbChunks
         );
 
         var tentatives = 0;
@@ -773,7 +826,7 @@ function envoyerChunks(fichier, jobId, nbChunks, csrfToken) {
                 tentatives++;
                 if (tentatives < maxTentatives) {
                     mettreAJourBarreUpload(pct,
-                        'Retry morceau ' + numChunk + ' (tentative ' + (tentatives + 1) + '/' + maxTentatives + ')…'
+                        t('progress.retry', {num: numChunk, tentative: tentatives + 1, max: maxTentatives})
                     );
                     return new Promise(function(resolve) {
                         setTimeout(resolve, 2000);
@@ -839,7 +892,7 @@ function demarrerPolling() {
                 } else if (data.statut === 'erreur') {
                     clearInterval(etat.pollingTimer);
                     etat.pollingTimer = null;
-                    afficherStatus('statusImport', 'Erreur : ' + (data.message || 'Inconnue'), 'error');
+                    afficherStatus('statusImport', t('error.erreur') + ' ' + (data.message || t('error.inconnue')), 'error');
                 }
             })
             .catch(function() {});
@@ -861,7 +914,7 @@ function mettreAJourProgression(data) {
     }
 
     if (data.phase === 'indexation') {
-        afficherStatus('statusImport', 'Création des index SQLite…', 'loading');
+        afficherStatus('statusImport', t('progress.indexation'), 'loading');
     }
 }
 
@@ -876,10 +929,10 @@ function afficherImportTermine(data) {
 
     // KPI du résumé dans la barre de résultats
     var html = '';
-    html += construireKpi(formaterNombre(data.lignes_importees || 0), 'Liens importés', '', 'kpi-dark');
-    html += construireKpi(formaterNombre(data.ancres_distinctes || 0), 'Ancres distinctes', '', 'kpi-gold');
-    html += construireKpi(formaterNombre(data.urls_distinctes || 0), 'URLs distinctes', '', '');
-    html += construireKpi(formaterDuree(data.duree_secondes || 0), 'Durée d\'import', '', '');
+    html += construireKpi(formaterNombre(data.lignes_importees || 0), t('kpi.liens_importes'), '', 'kpi-dark');
+    html += construireKpi(formaterNombre(data.ancres_distinctes || 0), t('kpi.ancres_distinctes'), '', 'kpi-gold');
+    html += construireKpi(formaterNombre(data.urls_distinctes || 0), t('kpi.urls_distinctes'), '', '');
+    html += construireKpi(formaterDuree(data.duree_secondes || 0), t('kpi.duree_import'), '', '');
     document.getElementById('kpiResultats').innerHTML = html;
 
     // Charger le dashboard (onglet actif)
@@ -947,7 +1000,7 @@ function afficherApercuAncres() {
         if (lignes.length === 0) return;
 
         var html = '<div class="apercu-csv"><table class="table table-sm"><thead><tr>' +
-            '<th>Ancre</th><th>URL cible</th></tr></thead><tbody>';
+            '<th>' + t('cannibale.apercu_ancre') + '</th><th>' + t('cannibale.apercu_url') + '</th></tr></thead><tbody>';
 
         var debut = document.getElementById('avecEntete').checked ? 1 : 0;
         for (var i = debut; i < Math.min(lignes.length, debut + 5); i++) {
@@ -970,7 +1023,7 @@ function afficherApercuAncres() {
 
 function lancerAnalyse() {
     if (!etat.jobId || !etat.fichierAncres) {
-        alert('Veuillez sélectionner le fichier ancres.');
+        alert(t('cannibale.fichier_ancres_requis'));
         return;
     }
 
@@ -992,7 +1045,7 @@ function lancerAnalyse() {
 
     fetch(baseUrl + '/analyse.php', { method: 'POST', body: formData })
     .then(function(r) {
-        if (r.status === 429) throw new Error('Quota mensuel épuisé.');
+        if (r.status === 429) throw new Error(t('error.quota'));
         return r.json();
     })
     .then(function(data) {
@@ -1004,7 +1057,7 @@ function lancerAnalyse() {
         masquerSection('sectionProgressionAnalyse');
         afficherSection('uploadCannibaleZone');
         document.getElementById('btnAnalyser').disabled = false;
-        alert('Erreur : ' + err.message);
+        alert(t('error.erreur') + ' ' + err.message);
     });
 }
 
@@ -1012,12 +1065,12 @@ function chargerResultatsCannibale(jobId) {
     fetch(baseUrl + '/results.php?jobId=' + encodeURIComponent(jobId))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.erreur) { alert('Erreur : ' + data.erreur); return; }
+            if (data.erreur) { alert(t('error.erreur') + ' ' + data.erreur); return; }
             etat.resultats = data;
             afficherResultatsCannibale(data);
         })
         .catch(function(err) {
-            alert('Erreur : ' + err.message);
+            alert(t('error.erreur') + ' ' + err.message);
         });
 }
 
@@ -1029,10 +1082,10 @@ function afficherResultatsCannibale(data) {
     // KPI Cannibalisation
     var classeScore = data.score_global <= 25 ? 'kpi-green' : (data.score_global <= 50 ? 'kpi-gold' : 'kpi-red');
     var html = '';
-    html += construireKpi(formaterNombre(data.nb_couples), 'Ancres analysées', '', 'kpi-dark');
-    html += construireKpi(formaterNombre(data.nb_cannibalisations), 'Cannibalisées',
-        'sur ' + data.nb_couples + ' ancres', 'kpi-red');
-    html += construireKpi(data.score_global + '%', 'Score global',
+    html += construireKpi(formaterNombre(data.nb_couples), t('kpi.ancres_analysees'), '', 'kpi-dark');
+    html += construireKpi(formaterNombre(data.nb_cannibalisations), t('kpi.cannibalisees'),
+        t('cannibale.sur') + ' ' + data.nb_couples + ' ' + t('tab.ancres').toLowerCase(), 'kpi-red');
+    html += construireKpi(data.score_global + '%', t('kpi.score_global'),
         data.severite_globale.label, classeScore);
 
     var pire = null;
@@ -1040,7 +1093,7 @@ function afficherResultatsCannibale(data) {
         if (!pire || r.ratio > pire.ratio) pire = r;
     });
     if (pire) {
-        html += construireKpi(pire.ratio + '%', 'Pire ancre', escapeHtml(pire.ancre), 'kpi-gold');
+        html += construireKpi(pire.ratio + '%', t('kpi.pire_ancre'), escapeHtml(pire.ancre), 'kpi-gold');
     }
     document.getElementById('kpiCannibale').innerHTML = html;
 
@@ -1048,18 +1101,18 @@ function afficherResultatsCannibale(data) {
     creerTableauPagine({
         conteneur: document.getElementById('tableauCannibaleResume'),
         colonnes: [
-            { cle: 'ancre', label: 'Ancre', tri: true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; } },
-            { cle: 'url_cible', label: 'URL cible', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url_cible) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url_cible) + '</a>'; } },
-            { cle: 'liens_legitimes', label: 'Légitimes', tri: true },
-            { cle: 'liens_cannibales', label: 'Cannibalisés', tri: true, render: function(r) { return '<strong>' + formaterNombre(r.liens_cannibales) + '</strong>'; } },
-            { cle: 'destinations_parasites', label: 'Dest. parasites', tri: true },
-            { cle: 'ratio', label: 'Ratio', tri: true, render: function(r) { return '<strong>' + r.ratio + '%</strong>'; } },
-            { cle: '_severite_ordre', label: 'Sévérité', tri: true, render: function(r) { return '<span class="' + r.severite.classe + '">' + r.severite.label + '</span>'; } },
+            { cle: 'ancre', label: t('table.ancre'), tri: true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; } },
+            { cle: 'url_cible', label: t('table.url_cible'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url_cible) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url_cible) + '</a>'; } },
+            { cle: 'liens_legitimes', label: t('table.legitimes'), tri: true },
+            { cle: 'liens_cannibales', label: t('table.cannibales'), tri: true, render: function(r) { return '<strong>' + formaterNombre(r.liens_cannibales) + '</strong>'; } },
+            { cle: 'destinations_parasites', label: t('table.dest_parasites'), tri: true },
+            { cle: 'ratio', label: t('table.ratio'), tri: true, render: function(r) { return '<strong>' + r.ratio + '%</strong>'; } },
+            { cle: '_severite_ordre', label: t('table.severite'), tri: true, render: function(r) { return '<span class="' + r.severite.classe + '">' + r.severite.label + '</span>'; } },
         ],
         donnees: data.resultats.map(function(r) {
             return Object.assign({}, r, { _severite_ordre: r.severite.ordre });
         }),
-        placeholder: 'Filtrer par ancre ou URL…',
+        placeholder: t('table.filtrer_ancre_url'),
         filtrer: function(item, terme) {
             return item.ancre.toLowerCase().includes(terme) || item.url_cible.toLowerCase().includes(terme);
         },
@@ -1084,7 +1137,7 @@ function afficherResultatsCannibale(data) {
                 ancre: r.ancre,
                 destination: s.destination,
                 url_cible: r.url_cible,
-                action: 'Modifier le lien ou changer l\'ancre',
+                action: t('cannibale.action_modifier'),
             });
         });
     });
@@ -1092,14 +1145,14 @@ function afficherResultatsCannibale(data) {
     creerTableauPagine({
         conteneur: document.getElementById('tableauCannibaleActions'),
         colonnes: [
-            { cle: 'source', label: 'Page source', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.source) + '" target="_blank" rel="noopener">' + tronquerUrl(r.source) + '</a>'; } },
-            { cle: 'ancre', label: 'Ancre', tri: true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; } },
-            { cle: 'destination', label: 'Destination actuelle', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.destination) + '" target="_blank" rel="noopener">' + tronquerUrl(r.destination) + '</a>'; } },
-            { cle: 'url_cible', label: 'Destination souhaitée', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url_cible) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url_cible) + '</a>'; } },
-            { cle: 'action', label: 'Action' },
+            { cle: 'source', label: t('cannibale.page_source'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.source) + '" target="_blank" rel="noopener">' + tronquerUrl(r.source) + '</a>'; } },
+            { cle: 'ancre', label: t('table.ancre'), tri: true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; } },
+            { cle: 'destination', label: t('cannibale.dest_actuelle'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.destination) + '" target="_blank" rel="noopener">' + tronquerUrl(r.destination) + '</a>'; } },
+            { cle: 'url_cible', label: t('cannibale.dest_souhaitee'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url_cible) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url_cible) + '</a>'; } },
+            { cle: 'action', label: t('table.action') },
         ],
         donnees: actions,
-        placeholder: 'Filtrer…',
+        placeholder: t('table.filtrer'),
         filtrer: function(item, terme) {
             return item.source.toLowerCase().includes(terme) || item.ancre.toLowerCase().includes(terme);
         },
@@ -1113,7 +1166,7 @@ function lancerCannibaleAuto() {
     if (btn) btn.disabled = true;
 
     var conteneur = document.getElementById('resultatsAutoCannibalisation');
-    conteneur.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Analyse en cours…</div>';
+    conteneur.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> ' + t('cannibale.analyse_en_cours') + '</div>';
     conteneur.classList.remove('d-none');
 
     fetchJson(baseUrl + '/advanced_analysis.php?importId=' + encodeURIComponent(etat.jobId) + '&type=cannibale_auto', {}, 'Cannibalisation auto')
@@ -1129,12 +1182,12 @@ function lancerCannibaleAuto() {
 
 function rendreResultatsAutoCannibalisation(el, data) {
     var html = '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_ancres_analysees), 'Ancres analysées', '3+ destinations', 'kpi-dark');
-    html += construireKpi(formaterNombre(data.nb_cannibalisees), 'Cannibalisées', '', data.nb_cannibalisees > 0 ? 'kpi-red' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_ancres_analysees), t('kpi.ancres_analysees'), t('kpi.trois_plus_dest'), 'kpi-dark');
+    html += construireKpi(formaterNombre(data.nb_cannibalisees), t('kpi.cannibalisees'), '', data.nb_cannibalisees > 0 ? 'kpi-red' : 'kpi-green');
     html += '</div>';
 
     if (!data.resultats || data.resultats.length === 0) {
-        html += '<div class="status-msg status-success"><i class="bi bi-check-circle me-1"></i>Aucune cannibalisation automatique détectée.</div>';
+        html += '<div class="status-msg status-success"><i class="bi bi-check-circle me-1"></i>' + t('cannibale.aucune_auto') + '</div>';
         el.innerHTML = html;
         return;
     }
@@ -1145,17 +1198,17 @@ function rendreResultatsAutoCannibalisation(el, data) {
     creerTableauPagine({
         conteneur: document.getElementById('autoCannibalTabConteneur'),
         colonnes: [
-            {cle:'ancre', label:'Ancre', tri:true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; }},
-            {cle:'destination_dominante', label:'Destination dominante', tri:true, render: function(r) { return rendreUrlCopiable(r.destination_dominante); }},
-            {cle:'pct_dominant', label:'% dominant', tri:true, render: function(r) { return r.pct_dominant.toFixed(0) + '%'; }},
-            {cle:'nb_destinations', label:'Dest.', tri:true},
-            {cle:'nb_liens_parasites', label:'Liens parasites', tri:true, render: function(r) { return '<strong class="text-danger">' + r.nb_liens_parasites + '</strong>'; }},
-            {cle:'ratio', label:'Ratio', tri:true, render: function(r) { return '<strong>' + r.ratio + '%</strong>'; }},
-            {cle:'_sev', label:'Sévérité', tri:true, render: function(r) { return '<span class="' + r.severite.classe + '">' + r.severite.label + '</span>'; }},
-            {cle:'impact', label:'Impact', tri:true, render: function(r) { return '<span class="badge-attention">' + r.impact + ' liens</span>'; }},
+            {cle:'ancre', label:t('table.ancre'), tri:true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; }},
+            {cle:'destination_dominante', label:t('cannibale.dest_dominante'), tri:true, render: function(r) { return rendreUrlCopiable(r.destination_dominante); }},
+            {cle:'pct_dominant', label:t('cannibale.pct_dominant'), tri:true, render: function(r) { return r.pct_dominant.toFixed(0) + '%'; }},
+            {cle:'nb_destinations', label:t('cannibale.dest'), tri:true},
+            {cle:'nb_liens_parasites', label:t('cannibale.liens_parasites'), tri:true, render: function(r) { return '<strong class="text-danger">' + r.nb_liens_parasites + '</strong>'; }},
+            {cle:'ratio', label:t('table.ratio'), tri:true, render: function(r) { return '<strong>' + r.ratio + '%</strong>'; }},
+            {cle:'_sev', label:t('table.severite'), tri:true, render: function(r) { return '<span class="' + r.severite.classe + '">' + r.severite.label + '</span>'; }},
+            {cle:'impact', label:'Impact', tri:true, render: function(r) { return '<span class="badge-attention">' + r.impact + ' ' + t('cannibale.impact') + '</span>'; }},
         ],
         donnees: data.resultats.map(function(r) { return Object.assign({}, r, {_sev: r.severite.ordre}); }),
-        placeholder: 'Filtrer par ancre…',
+        placeholder: t('table.filtrer_ancre'),
         filtrer: function(item, terme) { return item.ancre.toLowerCase().includes(terme); },
         exportNom: 'cannibalisation_auto.csv',
     });
@@ -1163,7 +1216,7 @@ function rendreResultatsAutoCannibalisation(el, data) {
 
 function remplirSelectAncres(resultats) {
     var select = document.getElementById('selectAncre');
-    select.innerHTML = '<option value="">— Choisir une ancre —</option>';
+    select.innerHTML = '<option value="">' + t('cannibale.choisir_ancre') + '</option>';
 
     resultats.forEach(function(r) {
         var opt = document.createElement('option');
@@ -1177,7 +1230,7 @@ function afficherDetailAncre(resultat) {
     var conteneur = document.getElementById('contenuDetail');
 
     if (!resultat) {
-        conteneur.innerHTML = '<p class="text-muted">Sélectionnez une ancre pour voir le détail.</p>';
+        conteneur.innerHTML = '<p class="text-muted">' + t('cannibale.detail_vide') + '</p>';
         return;
     }
 
@@ -1185,22 +1238,22 @@ function afficherDetailAncre(resultat) {
     html += '<div class="detail-bloc">';
     html += '<div class="row">';
     html += '<div class="col-md-6">';
-    html += '<h6><i class="bi bi-link-45deg me-1"></i>Ancre : "' + escapeHtml(resultat.ancre) + '"</h6>';
-    html += '<p class="url-cible mb-1"><strong>URL cible attendue :</strong> ' +
+    html += '<h6><i class="bi bi-link-45deg me-1"></i>' + t('cannibale.ancre_label') + ' "' + escapeHtml(resultat.ancre) + '"</h6>';
+    html += '<p class="url-cible mb-1"><strong>' + t('cannibale.url_cible_attendue') + '</strong> ' +
         '<a href="' + escapeHtml(resultat.url_cible) + '" target="_blank" rel="noopener">' +
         escapeHtml(resultat.url_cible) + '</a></p>';
     html += '</div>';
     html += '<div class="col-md-6 text-md-end">';
     html += '<span class="' + resultat.severite.classe + ' me-2">' + resultat.severite.label + '</span>';
-    html += '<strong>' + resultat.ratio + '%</strong> de cannibalisation';
-    html += '<br><small class="text-muted">' + formaterNombre(resultat.liens_legitimes) + ' légitimes — ' +
-        formaterNombre(resultat.liens_cannibales) + ' cannibalisés</small>';
+    html += '<strong>' + resultat.ratio + '%</strong> ' + t('cannibale.cannibalisation');
+    html += '<br><small class="text-muted">' + formaterNombre(resultat.liens_legitimes) + ' ' + t('cannibale.legitimes') + ' — ' +
+        formaterNombre(resultat.liens_cannibales) + ' ' + t('cannibale.cannibales') + '</small>';
     html += '</div></div></div>';
 
     if (resultat.detail_destinations && resultat.detail_destinations.length > 0) {
-        html += '<h6 class="mt-3 mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Destinations parasites</h6>';
+        html += '<h6 class="mt-3 mb-2"><i class="bi bi-exclamation-triangle me-1"></i>' + t('cannibale.dest_parasites') + '</h6>';
         html += '<div class="table-responsive"><table class="table table-sm">';
-        html += '<thead><tr><th>Destination erronée</th><th>Nb liens</th></tr></thead><tbody>';
+        html += '<thead><tr><th>' + t('cannibale.dest_erronee') + '</th><th>' + t('cannibale.nb_liens') + '</th></tr></thead><tbody>';
         resultat.detail_destinations.forEach(function(d) {
             html += '<tr><td><a href="' + escapeHtml(d.destination) + '" target="_blank" rel="noopener">' +
                 escapeHtml(d.destination) + '</a></td>' +
@@ -1210,9 +1263,9 @@ function afficherDetailAncre(resultat) {
     }
 
     if (resultat.detail_sources && resultat.detail_sources.length > 0) {
-        html += '<h6 class="mt-3 mb-2"><i class="bi bi-file-earmark-x me-1"></i>Pages sources fautives</h6>';
+        html += '<h6 class="mt-3 mb-2"><i class="bi bi-file-earmark-x me-1"></i>' + t('cannibale.pages_fautives') + '</h6>';
         html += '<div class="table-responsive"><table class="table table-sm">';
-        html += '<thead><tr><th>Page source</th><th>Destination erronée</th><th>Nb</th></tr></thead><tbody>';
+        html += '<thead><tr><th>' + t('cannibale.page_source') + '</th><th>' + t('cannibale.dest_erronee') + '</th><th>' + t('cannibale.nb') + '</th></tr></thead><tbody>';
         resultat.detail_sources.forEach(function(s) {
             html += '<tr><td><a href="' + escapeHtml(s.source) + '" target="_blank" rel="noopener">' +
                 tronquerUrl(s.source) + '</a></td>' +
@@ -1225,7 +1278,7 @@ function afficherDetailAncre(resultat) {
 
     if (resultat.liens_cannibales === 0) {
         html += '<div class="status-msg status-success mt-3">' +
-            '<i class="bi bi-check-circle me-1"></i>Aucune cannibalisation détectée pour cette ancre.</div>';
+            '<i class="bi bi-check-circle me-1"></i>' + t('cannibale.aucune') + '</div>';
     }
 
     conteneur.innerHTML = html;
@@ -1257,24 +1310,24 @@ function chargerListeImports() {
 function afficherListeImports(imports) {
     var conteneur = document.getElementById('listeImports');
     var html = '<div class="table-responsive"><table class="table table-sm import-table"><thead><tr>' +
-        '<th>Date</th><th>Fichier</th><th>Lignes</th><th>Ancres</th><th>URLs</th><th>Statut</th><th>Actions</th>' +
+        '<th>' + t('imports.date') + '</th><th>' + t('imports.fichier') + '</th><th>' + t('imports.lignes') + '</th><th>' + t('imports.ancres') + '</th><th>' + t('imports.urls') + '</th><th>' + t('imports.statut') + '</th><th>' + t('imports.actions') + '</th>' +
         '</tr></thead><tbody>';
 
     imports.forEach(function(imp) {
-        var date = new Date(imp.date_creation).toLocaleDateString('fr-FR', {
+        var date = new Date(imp.date_creation).toLocaleDateString(langueActuelle === 'en' ? 'en-US' : 'fr-FR', {
             day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         var statut = imp.statut === 'pret'
-            ? '<span class="badge-succes">Prêt</span>'
+            ? '<span class="badge-succes">' + t('imports.pret') + '</span>'
             : (imp.statut === 'erreur'
-                ? '<span class="badge-erreur">Erreur</span>'
-                : '<span class="badge-attention">En cours</span>');
+                ? '<span class="badge-erreur">' + t('imports.erreur') + '</span>'
+                : '<span class="badge-attention">' + t('imports.en_cours') + '</span>');
 
         var actions = '';
         if (imp.statut === 'pret') {
-            actions = '<button class="btn btn-sm btn-utiliser me-1" onclick="utiliserImport(\'' + imp.id + '\')">Utiliser</button>';
+            actions = '<button class="btn btn-sm btn-utiliser me-1" onclick="utiliserImport(\'' + imp.id + '\')">' + t('imports.utiliser') + '</button>';
         }
-        actions += '<button class="btn btn-sm btn-supprimer" onclick="supprimerImport(\'' + imp.id + '\')">Supprimer</button>';
+        actions += '<button class="btn btn-sm btn-supprimer" onclick="supprimerImport(\'' + imp.id + '\')">' + t('imports.supprimer') + '</button>';
 
         html += '<tr>' +
             '<td>' + date + '</td>' +
@@ -1311,13 +1364,13 @@ function utiliserImport(importId) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var html = '';
-            html += construireKpi(formaterNombre(data.lignes_importees || 0), 'Liens importés', '', 'kpi-dark');
-            html += construireKpi(formaterNombre(data.ancres_distinctes || 0), 'Ancres distinctes', '', 'kpi-gold');
-            html += construireKpi(formaterNombre(data.urls_distinctes || 0), 'URLs distinctes', '', '');
+            html += construireKpi(formaterNombre(data.lignes_importees || 0), t('kpi.liens_importes'), '', 'kpi-dark');
+            html += construireKpi(formaterNombre(data.ancres_distinctes || 0), t('kpi.ancres_distinctes'), '', 'kpi-gold');
+            html += construireKpi(formaterNombre(data.urls_distinctes || 0), t('kpi.urls_distinctes'), '', '');
             document.getElementById('kpiResultats').innerHTML = html;
         })
         .catch(function() {
-            document.getElementById('kpiResultats').innerHTML = construireKpi('—', 'Import sélectionné', importId.substring(0, 8), 'kpi-dark');
+            document.getElementById('kpiResultats').innerHTML = construireKpi('—', t('imports.selectionne'), importId.substring(0, 8), 'kpi-dark');
         });
 
     // Charger le dashboard (onglet actif par défaut)
@@ -1343,7 +1396,7 @@ function ajouterBoutonRetour() {
     var btn = document.createElement('button');
     btn.id = 'btnRetourImports';
     btn.className = 'btn btn-outline-secondary btn-sm mb-3';
-    btn.innerHTML = '<i class="bi bi-arrow-left me-1"></i> Retour aux imports';
+    btn.innerHTML = '<i class="bi bi-arrow-left me-1"></i> ' + t('btn.retour');
     btn.addEventListener('click', function() {
         masquerSection('sectionResultats');
         btn.remove();
@@ -1357,7 +1410,7 @@ function ajouterBoutonRetour() {
 }
 
 function supprimerImport(importId) {
-    if (!confirm('Supprimer cet import et toutes ses données ?')) return;
+    if (!confirm(t('imports.confirmer_suppression'))) return;
 
     var formData = new FormData();
     formData.append('action', 'supprimer');
@@ -1446,31 +1499,31 @@ function rendreDashboard(el, data) {
     var scoreSante = data.score_sante || 0;
     var classeS = classeScoreSante(scoreSante);
 
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Vue synthétique de la santé du maillage interne : score global, métriques clés et problèmes prioritaires à traiter.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('dashboard.memo') + '</p>';
     html += '<div class="d-flex align-items-start gap-4 mb-4">';
     html += '<div class="score-sante score-sante-' + classeS + '"><span class="score-sante-valeur">' + scoreSante + '</span><span class="score-sante-label">/100</span></div>';
     html += '<div class="flex-grow-1"><div class="kpi-row">';
-    html += construireKpi(formaterNombre(data.nb_pages), 'Pages', '', 'kpi-dark');
-    html += construireKpi(formaterNombre(data.nb_liens), 'Liens', '', '');
+    html += construireKpi(formaterNombre(data.nb_pages), t('kpi.pages'), '', 'kpi-dark');
+    html += construireKpi(formaterNombre(data.nb_liens), t('kpi.liens'), '', '');
     var classeRatio = data.ratio_liens_page < 2 ? 'kpi-red' : (data.ratio_liens_page > 30 ? 'kpi-gold' : 'kpi-green');
-    html += construireKpi(data.ratio_liens_page, 'Ratio liens/page', data.ratio_liens_page < 2 ? 'Sous-maillé' : (data.ratio_liens_page > 30 ? 'Suspicion footer' : 'Bon'), classeRatio);
-    html += construireKpi(formaterNombre(data.nb_ancres), 'Ancres uniques', '', 'kpi-gold');
+    html += construireKpi(data.ratio_liens_page, t('kpi.ratio_liens_page'), data.ratio_liens_page < 2 ? t('kpi.sous_maille') : (data.ratio_liens_page > 30 ? t('kpi.suspicion_footer') : t('kpi.bon')), classeRatio);
+    html += construireKpi(formaterNombre(data.nb_ancres), t('kpi.ancres_uniques'), '', 'kpi-gold');
     if (data.profondeur) {
         var classeProf = data.profondeur.moyenne <= 3 ? 'kpi-green' : (data.profondeur.moyenne <= 5 ? 'kpi-gold' : 'kpi-red');
-        html += construireKpi(data.profondeur.moyenne.toFixed(1), 'Profondeur moy.', 'Max : ' + data.profondeur.max + ' clics', classeProf);
+        html += construireKpi(data.profondeur.moyenne.toFixed(1), t('kpi.profondeur_moy'), t('kpi.max_clics', {max: data.profondeur.max}), classeProf);
     }
     html += '</div></div></div>';
 
     html += '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_orphelins), 'Orphelines', '', data.nb_orphelins > 0 ? 'kpi-red' : 'kpi-green');
-    html += construireKpi(formaterNombre(data.nb_culs_de_sac || 0), 'Culs-de-sac', 'Piègent le crawl', (data.nb_culs_de_sac || 0) > 0 ? 'kpi-gold' : 'kpi-green');
-    html += construireKpi(formaterNombre(data.nb_faible_diversite), 'Faible diversité', 'Ancres < 20%', data.nb_faible_diversite > 0 ? 'kpi-gold' : 'kpi-green');
-    html += construireKpi((data.pct_ancres_generiques || 0) + '%', 'Ancres génériques', formaterNombre(data.nb_ancres_generiques || 0) + ' liens', (data.pct_ancres_generiques || 0) > 30 ? 'kpi-red' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_orphelins), t('kpi.orphelines'), '', data.nb_orphelins > 0 ? 'kpi-red' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_culs_de_sac || 0), t('kpi.culs_de_sac'), t('kpi.piegent_crawl'), (data.nb_culs_de_sac || 0) > 0 ? 'kpi-gold' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_faible_diversite), t('kpi.faible_diversite'), t('kpi.ancres_inf_20'), data.nb_faible_diversite > 0 ? 'kpi-gold' : 'kpi-green');
+    html += construireKpi((data.pct_ancres_generiques || 0) + '%', t('kpi.ancres_generiques'), formaterNombre(data.nb_ancres_generiques || 0) + ' ' + t('kpi.liens').toLowerCase(), (data.pct_ancres_generiques || 0) > 30 ? 'kpi-red' : 'kpi-green');
     html += '</div>';
 
     // Top 5 problèmes
     if (data.top_problemes && data.top_problemes.length > 0) {
-        html += '<h6 class="mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Problèmes prioritaires</h6>';
+        html += '<h6 class="mb-2"><i class="bi bi-exclamation-triangle me-1"></i>' + t('dashboard.problemes_prioritaires') + '</h6>';
         var mapTabs = {orpheline:'tab-orphelins', diversite:'tab-diversite', cul_de_sac:'tab-hubs', generique:'tab-ancres', profondeur:'tab-pagerank'};
         data.top_problemes.forEach(function(p) {
             var badgeSev = p.severite === 'critique' ? 'badge-erreur' : (p.severite === 'elevee' ? 'badge-attention' : 'badge-succes');
@@ -1483,19 +1536,19 @@ function rendreDashboard(el, data) {
 
     // Profondeur distribution
     if (data.profondeur && data.profondeur.distribution) {
-        html += '<h6 class="mt-4 mb-2"><i class="bi bi-diagram-2 me-1"></i>Distribution de la profondeur</h6>';
+        html += '<h6 class="mt-4 mb-2"><i class="bi bi-diagram-2 me-1"></i>' + t('dashboard.distribution_profondeur') + '</h6>';
         html += '<div class="profondeur-distribution">';
         var totalProf = 0;
         Object.values(data.profondeur.distribution).forEach(function(v) { totalProf += v; });
         Object.keys(data.profondeur.distribution).forEach(function(k) {
             var v = data.profondeur.distribution[k];
             var pct = totalProf > 0 ? (v / totalProf * 100) : 0;
-            html += '<div class="profondeur-barre"><span class="profondeur-label">' + k + ' clic' + (k !== '1' ? 's' : '') + '</span>';
+            html += '<div class="profondeur-barre"><span class="profondeur-label">' + k + ' ' + (k !== '1' ? t('dashboard.clics') : t('dashboard.clic')) + '</span>';
             html += '<div class="profondeur-track"><div class="profondeur-fill" style="width:' + pct.toFixed(1) + '%;"></div></div>';
             html += '<span class="profondeur-valeur">' + formaterNombre(v) + ' (' + pct.toFixed(0) + '%)</span></div>';
         });
         if (data.profondeur.inaccessibles > 0) {
-            html += '<div class="profondeur-barre"><span class="profondeur-label" style="color:var(--score-low);">Inaccessibles</span>';
+            html += '<div class="profondeur-barre"><span class="profondeur-label" style="color:var(--score-low);">' + t('dashboard.inaccessibles') + '</span>';
             html += '<div class="profondeur-track"><div class="profondeur-fill" style="width:' + (data.profondeur.inaccessibles / totalProf * 100).toFixed(1) + '%;background:var(--score-low);"></div></div>';
             html += '<span class="profondeur-valeur" style="color:var(--score-low);">' + formaterNombre(data.profondeur.inaccessibles) + '</span></div>';
         }
@@ -1504,8 +1557,8 @@ function rendreDashboard(el, data) {
 
     // Top 5 pages
     if (data.top5_entrants && data.top5_entrants.length > 0) {
-        html += '<h6 class="mt-4 mb-2"><i class="bi bi-trophy me-1"></i>Top 5 — Pages les plus liées</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>#</th><th>URL</th><th>Liens entrants</th></tr></thead><tbody>';
+        html += '<h6 class="mt-4 mb-2"><i class="bi bi-trophy me-1"></i>' + t('dashboard.top5') + '</h6>';
+        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>#</th><th>' + t('dashboard.url') + '</th><th>' + t('dashboard.liens_entrants') + '</th></tr></thead><tbody>';
         data.top5_entrants.forEach(function(p, i) {
             html += '<tr><td>' + (i + 1) + '</td><td>' + rendreUrlCopiable(p.url) + '</td><td><strong>' + formaterNombre(p.nb_entrants) + '</strong></td></tr>';
         });
@@ -1513,7 +1566,7 @@ function rendreDashboard(el, data) {
     }
 
     if (data.homepage) {
-        html += '<p class="text-muted mt-3" style="font-size:0.8rem;"><i class="bi bi-house me-1"></i>Homepage détectée : <strong>' + escapeHtml(data.homepage) + '</strong></p>';
+        html += '<p class="text-muted mt-3" style="font-size:0.8rem;"><i class="bi bi-house me-1"></i>' + t('dashboard.homepage') + ' <strong>' + escapeHtml(data.homepage) + '</strong></p>';
     }
 
     el.innerHTML = html;
@@ -1522,30 +1575,30 @@ function rendreDashboard(el, data) {
 // ── Renderer : Pages orphelines ──────────────────────────
 
 function rendreOrphelins(el, data) {
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Pages qui émettent des liens mais n\'en reçoivent aucun (orphelines) ou très peu (quasi-orphelines). Ces pages sont difficiles à découvrir pour Google et les utilisateurs.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('orphelins.memo') + '</p>';
     html += '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_orphelins), 'Orphelines strictes', '0 lien entrant', 'kpi-red');
-    html += construireKpi(formaterNombre(data.nb_quasi_orphelins || 0), 'Quasi-orphelines', '1-2 liens entrants', 'kpi-gold');
-    html += construireKpi(formaterNombre(data.nb_pages_total), 'Pages totales', '', 'kpi-dark');
-    html += construireKpi(data.ratio_orphelins + '%', 'Taux d\'orphelines', '', data.ratio_orphelins > 10 ? 'kpi-red' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_orphelins), t('kpi.orphelines_strictes'), t('kpi.zero_entrant'), 'kpi-red');
+    html += construireKpi(formaterNombre(data.nb_quasi_orphelins || 0), t('kpi.quasi_orphelines'), t('kpi.un_deux_entrants'), 'kpi-gold');
+    html += construireKpi(formaterNombre(data.nb_pages_total), t('kpi.pages_totales'), '', 'kpi-dark');
+    html += construireKpi(data.ratio_orphelins + '%', t('kpi.taux_orphelines'), '', data.ratio_orphelins > 10 ? 'kpi-red' : 'kpi-green');
     html += '</div>';
 
     // Filtres
     html += '<div class="d-flex gap-2 mb-3 align-items-center">';
-    html += '<select id="filtreOrphelinsSection" class="form-select form-select-sm" style="width:200px;"><option value="">Toutes les sections</option>';
+    html += '<select id="filtreOrphelinsSection" class="form-select form-select-sm" style="width:200px;"><option value="">' + t('orphelins.toutes_sections') + '</option>';
     (data.sections_disponibles || []).forEach(function(s) { html += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; });
     html += '</select>';
-    html += '<div class="form-check form-switch ms-3"><input class="form-check-input" type="checkbox" id="toggleQuasiOrphelins"><label class="form-check-label" for="toggleQuasiOrphelins" style="font-size:0.85rem;">Afficher les quasi-orphelines</label></div>';
+    html += '<div class="form-check form-switch ms-3"><input class="form-check-input" type="checkbox" id="toggleQuasiOrphelins"><label class="form-check-label" for="toggleQuasiOrphelins" style="font-size:0.85rem;">' + t('orphelins.afficher_quasi') + '</label></div>';
     html += '</div>';
 
     html += '<div id="orphelinsTabConteneur"></div>';
 
     // Suggestions
     if (data.suggestions && data.suggestions.length > 0) {
-        html += '<h6 class="mt-4 mb-2"><i class="bi bi-lightbulb me-1"></i>Suggestions de maillage</h6>';
+        html += '<h6 class="mt-4 mb-2"><i class="bi bi-lightbulb me-1"></i>' + t('orphelins.suggestions') + '</h6>';
         data.suggestions.forEach(function(s) {
-            html += '<div class="action-card"><span class="action-source">Liez ' + rendreUrlCopiable(s.orpheline) + '</span>';
-            html += '<div class="action-detail">depuis ' + rendreUrlCopiable(s.source_suggeree) + ' (' + s.nb_liens_hub + ' liens sortants, même section)</div></div>';
+            html += '<div class="action-card"><span class="action-source">' + t('orphelins.liez') + ' ' + rendreUrlCopiable(s.orpheline) + '</span>';
+            html += '<div class="action-detail">' + t('orphelins.depuis') + ' ' + rendreUrlCopiable(s.source_suggeree) + ' (' + s.nb_liens_hub + ' ' + t('orphelins.liens_sortants_section') + ')</div></div>';
         });
     }
 
@@ -1556,12 +1609,12 @@ function rendreOrphelins(el, data) {
     var tableInstance = creerTableauPagine({
         conteneur: document.getElementById('orphelinsTabConteneur'),
         colonnes: [
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'section', label:'Section', tri:true},
-            {cle:'nb_liens_sortants', label:'Liens sortants', tri:true},
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'section', label:t('table.section'), tri:true},
+            {cle:'nb_liens_sortants', label:t('table.liens_sortants'), tri:true},
         ],
         donnees: donneesActuelles,
-        placeholder: 'Filtrer par URL…',
+        placeholder: t('table.filtrer_url'),
         filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
         exportNom: 'orphelines.csv',
     });
@@ -1586,21 +1639,21 @@ function rendreOrphelins(el, data) {
 // ── Renderer : Diversité des ancres ──────────────────────
 
 function rendreDiversite(el, data) {
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Analyse la variété des textes d\'ancre pointant vers chaque page. Une faible diversité (toujours la même ancre) peut signaler du keyword stuffing interne. Une ancre dominante > 60% sur 2+ mots est un risque de sur-optimisation.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('diversite.memo') + '</p>';
     html += '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_pages_analysees), 'Pages analysées', '(3+ liens entrants)', 'kpi-dark');
-    html += construireKpi(formaterNombre(data.nb_faible_diversite), 'Faible diversité', '(indice < 20%)', 'kpi-red');
-    html += construireKpi(formaterNombre(data.nb_sur_optimisees || 0), 'Sur-optimisées', 'Ancre > 60%', 'kpi-red');
-    html += construireKpi(formaterNombre(data.nb_a_risque || 0), 'Dominante > 70%', 'À risque', 'kpi-gold');
+    html += construireKpi(formaterNombre(data.nb_pages_analysees), t('kpi.pages_analysees'), t('kpi.trois_plus_entrants'), 'kpi-dark');
+    html += construireKpi(formaterNombre(data.nb_faible_diversite), t('kpi.faible_diversite'), '(indice < 20%)', 'kpi-red');
+    html += construireKpi(formaterNombre(data.nb_sur_optimisees || 0), t('kpi.sur_optimisees'), t('kpi.ancre_sup_60'), 'kpi-red');
+    html += construireKpi(formaterNombre(data.nb_a_risque || 0), t('kpi.dominante_sup_70'), t('kpi.a_risque'), 'kpi-gold');
     html += '</div>';
 
     // Dropdown filtre prédéfini
     html += '<div class="d-flex gap-2 mb-3 align-items-center">';
     html += '<select id="filtreDiversitePredefini" class="form-select form-select-sm" style="width:220px;">';
-    html += '<option value="">Toutes les pages</option>';
-    html += '<option value="faible">Faible diversité (< 20%)</option>';
-    html += '<option value="suropt">Sur-optimisées</option>';
-    html += '<option value="dominante">Dominante > 70%</option>';
+    html += '<option value="">' + t('diversite.toutes_pages') + '</option>';
+    html += '<option value="faible">' + t('diversite.faible') + '</option>';
+    html += '<option value="suropt">' + t('diversite.suropt') + '</option>';
+    html += '<option value="dominante">' + t('diversite.dominante') + '</option>';
     html += '</select></div>';
 
     var conteneurTab = document.createElement('div');
@@ -1614,23 +1667,23 @@ function rendreDiversite(el, data) {
     var tableInstance = creerTableauPagine({
         conteneur: conteneurTab,
         colonnes: [
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'section', label:'Section', tri:true},
-            {cle:'total_liens', label:'Liens', tri:true},
-            {cle:'ancres_uniques', label:'Uniques', tri:true},
-            {cle:'_indice', label:'Diversité', tri:true, render: function(r) {
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'section', label:t('table.section'), tri:true},
+            {cle:'total_liens', label:t('table.liens'), tri:true},
+            {cle:'ancres_uniques', label:t('table.uniques'), tri:true},
+            {cle:'_indice', label:t('table.diversite'), tri:true, render: function(r) {
                 var idx = parseFloat(r.indice_diversite);
                 var badge = idx < 20 ? 'badge-erreur' : (idx < 50 ? 'badge-attention' : 'badge-succes');
                 return '<span class="' + badge + '">' + r.indice_diversite + '%</span>';
             }},
-            {cle:'_pct_dom', label:'Dominante', tri:true, render: function(r) {
+            {cle:'_pct_dom', label:t('table.dominante'), tri:true, render: function(r) {
                 var txt = escapeHtml(r.ancre_dominante || '') + ' <strong>' + (r.pct_dominante || 0).toFixed(0) + '%</strong>';
-                if (r.risque_sur_optimisation) txt += ' <span class="badge-erreur" style="font-size:0.65rem;">Sur-opt.</span>';
+                if (r.risque_sur_optimisation) txt += ' <span class="badge-erreur" style="font-size:0.65rem;">' + t('diversite.sur_opt_badge') + '</span>';
                 return '<span style="font-size:0.8rem;">' + txt + '</span>';
             }},
         ],
         donnees: donneesCompletes,
-        placeholder: 'Filtrer par URL ou ancre…',
+        placeholder: t('table.filtrer_url_ancre'),
         regexToggle: true,
         filtrer: function(item, terme, isRegex) {
             if (isRegex) {
@@ -1658,15 +1711,15 @@ function rendreDiversite(el, data) {
 // ── Renderer : Hubs & Autorités ──────────────────────────
 
 function rendreHubs(el, data) {
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Hubs = pages qui distribuent le plus de liens sortants. Autorités = pages qui reçoivent le plus de liens entrants. Les fuites d\'équité et pages puits révèlent les déséquilibres dans la distribution du PageRank.</p>';
-    html += '<h6 class="mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>Top Hubs</h6><div id="hubsTabConteneur"></div>';
-    html += '<h6 class="mt-4"><i class="bi bi-box-arrow-in-down me-1"></i>Top Autorités</h6><div id="autoritesTabConteneur"></div>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('hubs.memo') + '</p>';
+    html += '<h6 class="mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>' + t('hubs.top_hubs') + '</h6><div id="hubsTabConteneur"></div>';
+    html += '<h6 class="mt-4"><i class="bi bi-box-arrow-in-down me-1"></i>' + t('hubs.top_autorites') + '</h6><div id="autoritesTabConteneur"></div>';
     if (data.fuites_equite && data.fuites_equite.length > 0) {
-        html += '<h6 class="mt-4"><i class="bi bi-exclamation-triangle me-1" style="color:var(--brand-gold);"></i>Fuites d\'équité</h6><div id="fuitesTabConteneur"></div>';
+        html += '<h6 class="mt-4"><i class="bi bi-exclamation-triangle me-1" style="color:var(--brand-gold);"></i>' + t('hubs.fuites_equite') + '</h6><div id="fuitesTabConteneur"></div>';
     }
     if (data.pages_puits && data.pages_puits.length > 0) {
-        html += '<h6 class="mt-4"><i class="bi bi-inbox me-1" style="color:var(--score-low);"></i>Pages puits (absorbent le PageRank)</h6>';
-        html += '<p class="text-muted mb-2" style="font-size:0.82rem;">Ces pages reçoivent de l\'autorité mais ne la redistribuent pas — le PageRank y est piégé.</p>';
+        html += '<h6 class="mt-4"><i class="bi bi-inbox me-1" style="color:var(--score-low);"></i>' + t('hubs.pages_puits') + '</h6>';
+        html += '<p class="text-muted mb-2" style="font-size:0.82rem;">' + t('hubs.pages_puits_desc') + '</p>';
         html += '<div id="puitsTabConteneur"></div>';
     }
     el.innerHTML = html;
@@ -1674,45 +1727,45 @@ function rendreHubs(el, data) {
     creerTableauPagine({
         conteneur: document.getElementById('hubsTabConteneur'),
         colonnes: [
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'nb_liens', label:'Sortants', tri:true, render: function(r) { return '<strong>' + formaterNombre(r.nb_liens) + '</strong>'; }},
-            {cle:'destinations_uniques', label:'Dest. uniques', tri:true},
-            {cle:'nb_entrants', label:'Entrants', tri:true},
-            {cle:'ratio_in_out', label:'Ratio IN/OUT', tri:true, render: function(r) {
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'nb_liens', label:t('table.sortants'), tri:true, render: function(r) { return '<strong>' + formaterNombre(r.nb_liens) + '</strong>'; }},
+            {cle:'destinations_uniques', label:t('table.dest_uniques'), tri:true},
+            {cle:'nb_entrants', label:t('table.entrants'), tri:true},
+            {cle:'ratio_in_out', label:t('table.ratio_in_out'), tri:true, render: function(r) {
                 var v = r.ratio_in_out || 0;
                 var badge = v < 0.3 ? 'badge-erreur' : (v < 1 ? 'badge-attention' : 'badge-succes');
                 return '<span class="' + badge + '">' + v.toFixed(2) + '</span>';
             }},
         ],
         donnees: data.hubs, exportNom: 'hubs.csv',
-        placeholder: 'Filtrer…', filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
+        placeholder: t('table.filtrer'), filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
     });
 
     creerTableauPagine({
         conteneur: document.getElementById('autoritesTabConteneur'),
         colonnes: [
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'nb_liens', label:'Entrants', tri:true, render: function(r) { return '<strong>' + formaterNombre(r.nb_liens) + '</strong>'; }},
-            {cle:'sources_uniques', label:'Sources uniques', tri:true},
-            {cle:'nb_sortants', label:'Sortants', tri:true},
-            {cle:'ratio_in_out', label:'Ratio IN/OUT', tri:true, render: function(r) {
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'nb_liens', label:t('table.entrants'), tri:true, render: function(r) { return '<strong>' + formaterNombre(r.nb_liens) + '</strong>'; }},
+            {cle:'sources_uniques', label:t('table.sources_uniques'), tri:true},
+            {cle:'nb_sortants', label:t('table.sortants'), tri:true},
+            {cle:'ratio_in_out', label:t('table.ratio_in_out'), tri:true, render: function(r) {
                 var v = r.ratio_in_out || 0;
                 return '<strong>' + v.toFixed(2) + '</strong>';
             }},
         ],
         donnees: data.autorites, exportNom: 'autorites.csv',
-        placeholder: 'Filtrer…', filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
+        placeholder: t('table.filtrer'), filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
     });
 
     if (data.fuites_equite && data.fuites_equite.length > 0) {
         creerTableauPagine({
             conteneur: document.getElementById('fuitesTabConteneur'),
             colonnes: [
-                {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-                {cle:'nb_sortants', label:'Sortants', tri:true, render: function(r) { return '<strong>' + r.nb_sortants + '</strong>'; }},
-                {cle:'nb_entrants', label:'Entrants', tri:true, render: function(r) { return '<span class="text-danger"><strong>' + r.nb_entrants + '</strong></span>'; }},
-                {cle:'section', label:'Section', tri:true},
-                {cle:'recommandation', label:'Action', render: function(r) { return '<span style="font-size:0.78rem;font-style:italic;">' + escapeHtml(r.recommandation || '') + '</span>'; }},
+                {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+                {cle:'nb_sortants', label:t('table.sortants'), tri:true, render: function(r) { return '<strong>' + r.nb_sortants + '</strong>'; }},
+                {cle:'nb_entrants', label:t('table.entrants'), tri:true, render: function(r) { return '<span class="text-danger"><strong>' + r.nb_entrants + '</strong></span>'; }},
+                {cle:'section', label:t('table.section'), tri:true},
+                {cle:'recommandation', label:t('table.action'), render: function(r) { return '<span style="font-size:0.78rem;font-style:italic;">' + escapeHtml(r.recommandation || '') + '</span>'; }},
             ],
             donnees: data.fuites_equite, exportNom: 'fuites.csv',
         });
@@ -1722,9 +1775,9 @@ function rendreHubs(el, data) {
         creerTableauPagine({
             conteneur: document.getElementById('puitsTabConteneur'),
             colonnes: [
-                {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-                {cle:'nb_entrants', label:'Entrants', tri:true},
-                {cle:'section', label:'Section', tri:true},
+                {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+                {cle:'nb_entrants', label:t('table.entrants'), tri:true},
+                {cle:'section', label:t('table.section'), tri:true},
             ],
             donnees: data.pages_puits, exportNom: 'pages_puits.csv',
         });
@@ -1735,15 +1788,15 @@ function rendreHubs(el, data) {
 
 function rendreDistribution(el, data) {
     if (!data.sections || data.sections.length === 0) {
-        el.innerHTML = '<p class="text-muted">Pas de données de section disponibles.</p>';
+        el.innerHTML = '<p class="text-muted">' + t('sections.pas_de_donnees') + '</p>';
         return;
     }
 
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Matrice des flux de liens entre sections (répertoires). Identifie les silos bien structurés, les sections isolées, et les déséquilibres de maillage transversal.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('sections.memo') + '</p>';
 
     // Alertes îlots
     if (data.ilots && data.ilots.length > 0) {
-        html += '<div class="status-msg status-error mb-3"><i class="bi bi-exclamation-triangle me-1"></i><strong>Sections isolées</strong> (aucun lien inter-section) : ' + data.ilots.map(escapeHtml).join(', ') + '</div>';
+        html += '<div class="status-msg status-error mb-3"><i class="bi bi-exclamation-triangle me-1"></i><strong>' + t('sections.isolees') + '</strong> ' + t('sections.aucun_lien') + ' ' + data.ilots.map(escapeHtml).join(', ') + '</div>';
     }
 
     // Calculer le max pour le heatmap
@@ -1755,10 +1808,10 @@ function rendreDistribution(el, data) {
         });
     });
 
-    html += '<h6 class="mb-3">Matrice de flux de liens entre sections</h6>';
-    html += '<div class="table-responsive"><table class="table table-sm matrice-sections"><thead><tr><th>Source \\ Dest</th>';
+    html += '<h6 class="mb-3">' + t('sections.matrice') + '</h6>';
+    html += '<div class="table-responsive"><table class="table table-sm matrice-sections"><thead><tr><th>' + t('sections.source_dest') + '</th>';
     data.sections.forEach(function(s) { html += '<th class="text-center">' + escapeHtml(s) + '</th>'; });
-    html += '<th class="text-center">Total</th></tr></thead><tbody>';
+    html += '<th class="text-center">' + t('sections.total') + '</th></tr></thead><tbody>';
 
     data.sections.forEach(function(src) {
         html += '<tr><th>' + escapeHtml(src) + '</th>';
@@ -1778,8 +1831,8 @@ function rendreDistribution(el, data) {
     html += '</tbody></table></div>';
 
     // Totaux par section enrichis
-    html += '<h6 class="mt-4">Analyse par section</h6>';
-    html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Section</th><th>Pages</th><th>Entrants</th><th>Sortants</th><th>Intra</th><th>Isolation</th><th>Top flux sortant</th><th>Diagnostic</th></tr></thead><tbody>';
+    html += '<h6 class="mt-4">' + t('sections.analyse') + '</h6>';
+    html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>' + t('sections.section') + '</th><th>' + t('sections.pages') + '</th><th>' + t('sections.entrants') + '</th><th>' + t('sections.sortants') + '</th><th>' + t('sections.intra') + '</th><th>' + t('sections.isolation') + '</th><th>' + t('sections.top_flux') + '</th><th>' + t('sections.diagnostic') + '</th></tr></thead><tbody>';
     data.sections.forEach(function(s) {
         var t = data.totaux[s] || {};
         var iso = t.isolation || 0;
@@ -1797,19 +1850,19 @@ function rendreDistribution(el, data) {
 // ── Renderer : PageRank ──────────────────────────────────
 
 function rendrePageRank(el, data) {
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>PageRank interne calculé avec le modèle du surfeur raisonnable (pondération qualité d\'ancre, cohérence thématique, doublons). Identifie les pages qui concentrent ou diluent l\'autorité. L\'efficacité mesure le score par lien entrant.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('pagerank.memo') + '</p>';
     html += '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_pages), 'Pages dans le graphe', '', 'kpi-dark');
+    html += construireKpi(formaterNombre(data.nb_pages), t('kpi.pages_graphe'), '', 'kpi-dark');
     if (data.classement.length > 0) {
-        html += construireKpi(data.classement[0].score.toFixed(1), 'Score #1', tronquerUrl(data.classement[0].url), 'kpi-gold');
+        html += construireKpi(data.classement[0].score.toFixed(1), t('kpi.score_num1'), tronquerUrl(data.classement[0].url), 'kpi-gold');
     }
     if (data.distribution) {
         var faibles = data.distribution.find(function(d) { return d.label.includes('Très faible'); });
-        if (faibles) html += construireKpi(formaterNombre(faibles.nb_pages), 'Pages très faibles', 'Score < 20', 'kpi-red');
+        if (faibles) html += construireKpi(formaterNombre(faibles.nb_pages), t('kpi.pages_tres_faibles'), t('kpi.score_inf_20'), 'kpi-red');
     }
     html += '</div>';
 
-    html += '<p class="text-muted mb-3" style="font-size:0.8rem;"><i class="bi bi-info-circle me-1"></i>PageRank <strong>surfeur raisonnable</strong> : pondération ancre, cohérence thématique, doublons. Score normalisé (max = 100).</p>';
+    html += '<p class="text-muted mb-3" style="font-size:0.8rem;"><i class="bi bi-info-circle me-1"></i>' + t('pagerank.surfeur_info') + '</p>';
 
     // Alertes PR
     if (data.alertes && data.alertes.length > 0) {
@@ -1824,7 +1877,7 @@ function rendrePageRank(el, data) {
 
     // Distribution
     if (data.distribution) {
-        html += '<h6>Distribution des scores</h6><div class="row mb-4">';
+        html += '<h6>' + t('pagerank.distribution') + '</h6><div class="row mb-4">';
         data.distribution.forEach(function(d) {
             var pct = data.nb_pages > 0 ? Math.round((d.nb_pages / data.nb_pages) * 100) : 0;
             html += '<div class="col"><div class="text-center"><div class="fw-bold">' + formaterNombre(d.nb_pages) + '</div><div class="progress mb-1" style="height:6px;"><div class="progress-bar" style="width:' + pct + '%;"></div></div><div style="font-size:0.7rem;" class="text-muted">' + d.label + '</div></div></div>';
@@ -1833,11 +1886,11 @@ function rendrePageRank(el, data) {
     }
 
     html += '<div id="treemapConteneur" class="mb-4"></div>';
-    html += '<h6>Classement PageRank global</h6><div id="pagerankTabConteneur"></div>';
+    html += '<h6>' + t('pagerank.classement') + '</h6><div id="pagerankTabConteneur"></div>';
 
     if (data.par_section && Object.keys(data.par_section).length > 0) {
-        html += '<h6 class="mt-4">PageRank thématique par section</h6>';
-        html += '<div class="row mb-2"><div class="col-md-4"><select class="form-select form-select-sm" id="selectSectionPR"><option value="">— Choisir une section —</option>';
+        html += '<h6 class="mt-4">' + t('pagerank.par_section') + '</h6>';
+        html += '<div class="row mb-2"><div class="col-md-4"><select class="form-select form-select-sm" id="selectSectionPR"><option value="">' + t('pagerank.choisir_section') + '</option>';
         Object.keys(data.par_section).sort().forEach(function(s) {
             html += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + ' (' + data.par_section[s].length + ' pages)</option>';
         });
@@ -1849,16 +1902,16 @@ function rendrePageRank(el, data) {
     creerTableauPagine({
         conteneur: document.getElementById('pagerankTabConteneur'),
         colonnes: [
-            {cle:'_rang', label:'#', render: function(r) { return r._rang; }},
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'score', label:'Score', tri:true, render: function(r) { return '<strong>' + r.score.toFixed(1) + '</strong>'; }},
-            {cle:'efficacite', label:'Efficacité', tri:true, render: function(r) { var e = r.efficacite || 0; return '<span style="color:' + (e > 10 ? 'var(--score-high)' : (e > 3 ? 'var(--brand-gold)' : 'var(--text-muted)')) + ';">' + e.toFixed(1) + '</span>'; }},
-            {cle:'section', label:'Section', tri:true},
-            {cle:'nb_entrants', label:'Entrants', tri:true},
-            {cle:'nb_sortants', label:'Sortants', tri:true},
+            {cle:'_rang', label:t('table.rang'), render: function(r) { return r._rang; }},
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'score', label:t('table.score'), tri:true, render: function(r) { return '<strong>' + r.score.toFixed(1) + '</strong>'; }},
+            {cle:'efficacite', label:t('table.efficacite'), tri:true, render: function(r) { var e = r.efficacite || 0; return '<span style="color:' + (e > 10 ? 'var(--score-high)' : (e > 3 ? 'var(--brand-gold)' : 'var(--text-muted)')) + ';">' + e.toFixed(1) + '</span>'; }},
+            {cle:'section', label:t('table.section'), tri:true},
+            {cle:'nb_entrants', label:t('table.entrants'), tri:true},
+            {cle:'nb_sortants', label:t('table.sortants'), tri:true},
         ],
         donnees: data.classement.map(function(p, i) { return Object.assign({}, p, {_rang: i + 1}); }),
-        placeholder: 'Filtrer par URL ou section…',
+        placeholder: t('table.filtrer_url_section'),
         filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme) || item.section.toLowerCase().includes(terme); },
         exportNom: 'pagerank.csv',
     });
@@ -1902,7 +1955,7 @@ function chargerTreemap(data) {
 }
 
 function rendreTreemap(conteneur, data) {
-    conteneur.innerHTML = '<h6>Treemap PageRank par section</h6><canvas id="canvasTreemap" style="max-height:400px;"></canvas>';
+    conteneur.innerHTML = '<h6>' + t('pagerank.treemap') + '</h6><canvas id="canvasTreemap" style="max-height:400px;"></canvas>';
     var canvas = document.getElementById('canvasTreemap');
 
     // Regrouper par section
@@ -1955,7 +2008,7 @@ function rendreTreemap(conteneur, data) {
                     callbacks: {
                         title: function(items) { return items[0].raw._data.section; },
                         label: function(item) {
-                            return 'PageRank total : ' + item.raw._data.poids + ' — ' + item.raw._data.pages + ' pages';
+                            return t('pagerank.tooltip', {poids: item.raw._data.poids, pages: item.raw._data.pages});
                         },
                     },
                 },
@@ -1967,12 +2020,12 @@ function rendreTreemap(conteneur, data) {
 // ── Renderer : Liste des ancres + Nuage ──────────────────
 
 function rendreListeAncres(el, data) {
-    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>Inventaire complet des textes d\'ancre classés par type (descriptif, mot-clé, générique, URL nue, vide). Les ancres pointant vers 3+ destinations sont suspectes de cannibalisation. Le nuage visualise la fréquence et le type.</p>';
+    var html = '<p class="memo-onglet"><i class="bi bi-info-circle me-1"></i>' + t('ancres.memo') + '</p>';
     html += '<div class="kpi-row mb-4">';
-    html += construireKpi(formaterNombre(data.nb_ancres_total), 'Ancres uniques', '', 'kpi-dark');
-    html += construireKpi((data.pct_generiques || 0).toFixed(0) + '%', 'Génériques', formaterNombre(data.nb_generiques || 0) + ' ancres', (data.pct_generiques || 0) > 30 ? 'kpi-red' : 'kpi-green');
-    html += construireKpi((data.longueur_moyenne || 0).toFixed(1), 'Mots/ancre moy.', '', '');
-    html += construireKpi(formaterNombre(data.nb_suspectes_cannib || 0), 'Suspectes cannib.', '3+ destinations', (data.nb_suspectes_cannib || 0) > 0 ? 'kpi-gold' : 'kpi-green');
+    html += construireKpi(formaterNombre(data.nb_ancres_total), t('kpi.nb_ancres_total'), '', 'kpi-dark');
+    html += construireKpi((data.pct_generiques || 0).toFixed(0) + '%', t('kpi.generiques'), formaterNombre(data.nb_generiques || 0) + ' ' + t('tab.ancres').toLowerCase(), (data.pct_generiques || 0) > 30 ? 'kpi-red' : 'kpi-green');
+    html += construireKpi((data.longueur_moyenne || 0).toFixed(1), t('kpi.mots_ancre_moy'), '', '');
+    html += construireKpi(formaterNombre(data.nb_suspectes_cannib || 0), t('kpi.suspectes_cannib'), t('kpi.trois_plus_dest'), (data.nb_suspectes_cannib || 0) > 0 ? 'kpi-gold' : 'kpi-green');
     html += '</div>';
 
     // Barre de répartition par type
@@ -1982,11 +2035,11 @@ function rendreListeAncres(el, data) {
         if (total > 0) {
             html += '<div class="types-bar mb-4">';
             var segments = [
-                {type:'descriptif',label:'Descriptifs',n:td.descriptif||0,color:'#22c55e'},
-                {type:'mot_cle',label:'Mot-clé',n:td.mot_cle||0,color:'#fbb03b'},
-                {type:'generique',label:'Génériques',n:td.generique||0,color:'#ef4444'},
-                {type:'url_nue',label:'URL nues',n:td.url_nue||0,color:'#f97316'},
-                {type:'vide',label:'Vides',n:td.vide||0,color:'#94a3b8'},
+                {type:'descriptif',label:t('ancres.descriptifs'),n:td.descriptif||0,color:'#22c55e'},
+                {type:'mot_cle',label:t('ancres.mot_cle'),n:td.mot_cle||0,color:'#fbb03b'},
+                {type:'generique',label:t('ancres.generiques'),n:td.generique||0,color:'#ef4444'},
+                {type:'url_nue',label:t('ancres.url_nues'),n:td.url_nue||0,color:'#f97316'},
+                {type:'vide',label:t('ancres.vides'),n:td.vide||0,color:'#94a3b8'},
             ];
             html += '<div class="types-bar-track">';
             segments.forEach(function(s) {
@@ -2001,7 +2054,7 @@ function rendreListeAncres(el, data) {
         }
     }
 
-    html += '<h6><i class="bi bi-grid-3x3-gap me-1"></i>Ancres par type</h6><div id="nuageAncres" class="nuage-grille mb-4"></div>';
+    html += '<h6><i class="bi bi-grid-3x3-gap me-1"></i>' + t('ancres.par_type') + '</h6><div id="nuageAncres" class="nuage-grille mb-4"></div>';
     html += '<div id="detailAncrePanel" class="d-none mb-4"></div>';
     html += '<div id="ancresTabConteneur"></div>';
 
@@ -2012,20 +2065,20 @@ function rendreListeAncres(el, data) {
     creerTableauPagine({
         conteneur: document.getElementById('ancresTabConteneur'),
         colonnes: [
-            {cle:'ancre', label:'Ancre', tri:true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; }},
-            {cle:'type', label:'Type', tri:true, render: function(r) { return badgeType(r.type || 'mot_cle'); }},
-            {cle:'nb_occurrences', label:'Occurrences', tri:true},
-            {cle:'nb_destinations', label:'Destinations', tri:true, render: function(r) {
+            {cle:'ancre', label:t('table.ancre'), tri:true, render: function(r) { return '<strong>' + escapeHtml(r.ancre) + '</strong>'; }},
+            {cle:'type', label:t('table.type'), tri:true, render: function(r) { return badgeType(r.type || 'mot_cle'); }},
+            {cle:'nb_occurrences', label:t('table.occurrences'), tri:true},
+            {cle:'nb_destinations', label:t('table.destinations'), tri:true, render: function(r) {
                 var txt = String(r.nb_destinations);
                 if (r.suspect_cannibale) txt += ' <span class="badge-attention" style="font-size:0.6rem;">Cannib?</span>';
                 return txt;
             }},
-            {cle:'_top_dest', label:'Top destinations', render: function(r) {
+            {cle:'_top_dest', label:t('table.top_destinations'), render: function(r) {
                 return (r.top_destinations || []).map(function(d) { return rendreUrlCopiable(d.destination) + ' (' + d.nb + ')'; }).join(', ');
             }},
         ],
         donnees: data.ancres.map(function(a) { return Object.assign({}, a, {_top_dest:''}); }),
-        placeholder: 'Filtrer par ancre…',
+        placeholder: t('table.filtrer_ancre'),
         filtrer: function(item, terme) { return item.ancre.toLowerCase().includes(terme) || (item.type || '').includes(terme); },
         exportNom: 'ancres.csv',
     });
@@ -2051,7 +2104,7 @@ function rendreNuageAncres(ancres) {
 
     // Grouper par type
     var parType = {descriptif:[], mot_cle:[], generique:[], url_nue:[], vide:[]};
-    var typesLabels = {descriptif:'Descriptifs', mot_cle:'Mot-clé', generique:'Génériques', url_nue:'URL nues', vide:'Vides'};
+    var typesLabels = {descriptif:t('ancres.descriptifs'), mot_cle:t('ancres.mot_cle'), generique:t('ancres.generiques'), url_nue:t('ancres.url_nues'), vide:t('ancres.vides')};
     var typesCouleurs = {descriptif:'#065f46', mot_cle:'#92400e', generique:'#94a3b8', url_nue:'#f97316', vide:'#cbd5e1'};
     var typesBg = {descriptif:'#f0fdf4', mot_cle:'#fef4e0', generique:'#f1f5f9', url_nue:'#fff7ed', vide:'#f8fafc'};
 
@@ -2086,27 +2139,27 @@ function chargerDetailAncre(ancre) {
     if (!panel || !etat.jobId) return;
 
     panel.classList.remove('d-none');
-    panel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Chargement du détail pour "' + escapeHtml(ancre) + '"…</div>';
+    panel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> ' + t('error.chargement') + ' "' + escapeHtml(ancre) + '"…</div>';
     panel.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 
     fetchJson(baseUrl + '/advanced_analysis.php?importId=' + encodeURIComponent(etat.jobId) + '&type=detail_ancre&ancre=' + encodeURIComponent(ancre), {}, 'Détail ancre')
     .then(function(data) {
         var html = '<div class="card"><div class="card-header d-flex justify-content-between align-items-center">';
-        html += '<h6 class="mb-0"><i class="bi bi-link-45deg me-1"></i>Détail : "' + escapeHtml(data.ancre) + '"</h6>';
+        html += '<h6 class="mb-0"><i class="bi bi-link-45deg me-1"></i>' + t('ancres.detail') + ' "' + escapeHtml(data.ancre) + '"</h6>';
         html += '<button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById(\'detailAncrePanel\').classList.add(\'d-none\');"><i class="bi bi-x"></i></button>';
         html += '</div><div class="card-body">';
 
         // KPI
         html += '<div class="kpi-row mb-3">';
-        html += construireKpi(formaterNombre(data.nb_total), 'Occurrences', '', 'kpi-dark');
-        html += construireKpi(formaterNombre(data.nb_sources), 'Pages sources', '', '');
-        html += construireKpi(formaterNombre(data.nb_destinations), 'Destinations', '', data.nb_destinations > 3 ? 'kpi-gold' : 'kpi-green');
+        html += construireKpi(formaterNombre(data.nb_total), t('kpi.occurrences'), '', 'kpi-dark');
+        html += construireKpi(formaterNombre(data.nb_sources), t('kpi.pages_sources'), '', '');
+        html += construireKpi(formaterNombre(data.nb_destinations), t('kpi.destinations'), '', data.nb_destinations > 3 ? 'kpi-gold' : 'kpi-green');
         html += '</div>';
 
         // Top destinations
         html += '<div class="row"><div class="col-md-6">';
-        html += '<h6 class="mb-2">Top destinations</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>URL destination</th><th>Liens</th></tr></thead><tbody>';
+        html += '<h6 class="mb-2">' + t('ancres.top_destinations') + '</h6>';
+        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>' + t('ancres.url_destination') + '</th><th>' + t('table.liens') + '</th></tr></thead><tbody>';
         (data.top_destinations || []).forEach(function(d) {
             html += '<tr><td>' + rendreUrlCopiable(d.destination) + '</td><td><strong>' + formaterNombre(d.nb) + '</strong></td></tr>';
         });
@@ -2114,8 +2167,8 @@ function chargerDetailAncre(ancre) {
 
         // Top sources
         html += '<div class="col-md-6">';
-        html += '<h6 class="mb-2">Top sources</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>URL source</th><th>Liens</th></tr></thead><tbody>';
+        html += '<h6 class="mb-2">' + t('ancres.top_sources') + '</h6>';
+        html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>' + t('ancres.url_source') + '</th><th>' + t('table.liens') + '</th></tr></thead><tbody>';
         (data.top_sources || []).forEach(function(s) {
             html += '<tr><td>' + rendreUrlCopiable(s.source) + '</td><td><strong>' + formaterNombre(s.nb) + '</strong></td></tr>';
         });
@@ -2123,7 +2176,7 @@ function chargerDetailAncre(ancre) {
 
         // Paires source → destination
         if (data.liens && data.liens.length > 0) {
-            html += '<h6 class="mt-3 mb-2">Paires source → destination</h6>';
+            html += '<h6 class="mt-3 mb-2">' + t('ancres.paires') + '</h6>';
             html += '<div id="detailAncrePairesTab"></div>';
         }
 
@@ -2134,12 +2187,12 @@ function chargerDetailAncre(ancre) {
             creerTableauPagine({
                 conteneur: document.getElementById('detailAncrePairesTab'),
                 colonnes: [
-                    {cle:'source', label:'Source', tri:true, render: function(r) { return rendreUrlCopiable(r.source); }},
-                    {cle:'destination', label:'Destination', tri:true, render: function(r) { return rendreUrlCopiable(r.destination); }},
-                    {cle:'nb', label:'Nb', tri:true},
+                    {cle:'source', label:t('cannibale.page_source'), tri:true, render: function(r) { return rendreUrlCopiable(r.source); }},
+                    {cle:'destination', label:t('table.destinations'), tri:true, render: function(r) { return rendreUrlCopiable(r.destination); }},
+                    {cle:'nb', label:t('cannibale.nb'), tri:true},
                 ],
                 donnees: data.liens,
-                placeholder: 'Filtrer…',
+                placeholder: t('table.filtrer'),
                 regexToggle: true,
                 filtrer: function(item, terme, isRegex) {
                     if (isRegex) {
@@ -2190,36 +2243,36 @@ function rendreGscInsights() {
     if (!conteneur) return;
 
     if (!etat.gscDisponible || etat.gscSites.length === 0) {
-        conteneur.innerHTML = '<div class="status-msg status-error">Search Console non disponible. Connectez-vous via le module Search Console.</div>';
+        conteneur.innerHTML = '<div class="status-msg status-error">' + t('gsc.non_disponible') + '</div>';
         return;
     }
 
     var html = '<div class="row mb-4">';
     html += '<div class="col-md-4">';
-    html += '<label for="selectSiteGsc" class="form-label">Site Search Console</label>';
+    html += '<label for="selectSiteGsc" class="form-label">' + t('gsc.site') + '</label>';
     html += '<select class="form-select" id="selectSiteGsc">';
     etat.gscSites.forEach(function(s) {
         html += '<option value="' + s.id + '">' + escapeHtml(s.url) + '</option>';
     });
     html += '</select></div>';
     html += '<div class="col-md-3">';
-    html += '<label for="dateDebutGsc" class="form-label">Date début</label>';
+    html += '<label for="dateDebutGsc" class="form-label">' + t('gsc.date_debut') + '</label>';
     html += '<input type="date" class="form-control" id="dateDebutGsc" value="' + dateIl_y_a(90) + '">';
     html += '</div>';
     html += '<div class="col-md-3">';
-    html += '<label for="dateFinGsc" class="form-label">Date fin</label>';
+    html += '<label for="dateFinGsc" class="form-label">' + t('gsc.date_fin') + '</label>';
     html += '<input type="date" class="form-control" id="dateFinGsc" value="' + dateIl_y_a(0) + '">';
     html += '</div>';
     html += '<div class="col-md-2 d-flex align-items-end">';
-    html += '<button class="btn btn-primary btn-sm w-100" id="btnChargerGsc"><i class="bi bi-arrow-clockwise me-1"></i>Charger</button>';
+    html += '<button class="btn btn-primary btn-sm w-100" id="btnChargerGsc"><i class="bi bi-arrow-clockwise me-1"></i>' + t('btn.charger') + '</button>';
     html += '</div></div>';
 
     // 4 sous-analyses
     html += '<ul class="nav nav-tabs nav-tabs-inner mb-3" id="sousTabsGsc" role="tablist">';
-    html += '<li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#gsc-fortes">Pages fortes sans maillage</button></li>';
-    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-maillees">Maillées mais invisibles</button></li>';
-    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-ancre-vs-requete">Ancre vs requête</button></li>';
-    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-budget">Budget de crawl</button></li>';
+    html += '<li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#gsc-fortes">' + t('gsc.fortes_sans_maillage') + '</button></li>';
+    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-maillees">' + t('gsc.maillees_invisibles') + '</button></li>';
+    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-ancre-vs-requete">' + t('gsc.ancre_vs_requete') + '</button></li>';
+    html += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gsc-budget">' + t('gsc.budget_crawl') + '</button></li>';
     html += '</ul>';
     html += '<div class="tab-content">';
     html += '<div class="tab-pane fade show active" id="gsc-fortes"><div id="gscFortesConteneur"></div></div>';
@@ -2259,7 +2312,7 @@ function chargerDonneesGsc() {
 
     types.forEach(function(type) {
         var el = document.getElementById(conteneurs[type]);
-        if (el) el.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Chargement…</div>';
+        if (el) el.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> ' + t('error.chargement') + '</div>';
 
         fetchJson(
             baseUrl + '/gsc_analysis.php?importId=' + encodeURIComponent(etat.jobId) +
@@ -2286,54 +2339,54 @@ function chargerDonneesGsc() {
 }
 
 function rendreGscFortes(el, data) {
-    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>Pages bien positionnées dans Google mais peu soutenues par le maillage interne.</p>';
+    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>' + t('gsc.fortes_desc') + '</p>';
 
     // Quick wins
     if (data.quick_wins && data.quick_wins.length > 0) {
-        html += '<div class="status-msg status-success mb-3"><i class="bi bi-stars me-1"></i><strong>' + data.quick_wins.length + ' quick wins</strong> — pages en position 5-15 avec 500+ impressions et &lt; 5 liens internes. Un renforcement du maillage peut faire monter ces pages en top 5.</div>';
-        html += '<h6 class="mb-2">Quick Wins</h6><div id="gscQuickWinsTab"></div>';
+        html += '<div class="status-msg status-success mb-3"><i class="bi bi-stars me-1"></i><strong>' + data.quick_wins.length + ' ' + t('gsc.quick_wins') + '</strong> — ' + t('gsc.quick_wins_desc') + '</div>';
+        html += '<h6 class="mb-2">' + t('gsc.quick_wins_titre') + '</h6><div id="gscQuickWinsTab"></div>';
     }
 
-    html += '<h6 class="mt-4 mb-2">Toutes les pages sous-maillées</h6><div id="gscFortesTab"></div>';
+    html += '<h6 class="mt-4 mb-2">' + t('gsc.toutes_sous_maillees') + '</h6><div id="gscFortesTab"></div>';
     el.innerHTML = html;
 
     if (data.quick_wins && data.quick_wins.length > 0) {
         creerTableauPagine({
             conteneur: document.getElementById('gscQuickWinsTab'),
             colonnes: [
-                {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-                {cle:'position_moy', label:'Position', tri:true, render: function(r) { return '<strong>' + r.position_moy.toFixed(1) + '</strong>'; }},
-                {cle:'clics', label:'Clics', tri:true, render: function(r) { return formaterNombre(r.clics); }},
-                {cle:'impressions', label:'Impressions', tri:true, render: function(r) { return formaterNombre(r.impressions); }},
-                {cle:'nb_liens_entrants', label:'Liens', tri:true},
+                {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+                {cle:'position_moy', label:t('gsc.position'), tri:true, render: function(r) { return '<strong>' + r.position_moy.toFixed(1) + '</strong>'; }},
+                {cle:'clics', label:t('gsc.clics'), tri:true, render: function(r) { return formaterNombre(r.clics); }},
+                {cle:'impressions', label:t('gsc.impressions'), tri:true, render: function(r) { return formaterNombre(r.impressions); }},
+                {cle:'nb_liens_entrants', label:t('gsc.liens'), tri:true},
             ],
             donnees: data.quick_wins, exportNom: 'gsc_quick_wins.csv',
-            placeholder: 'Filtrer…', filtrer: function(i,t) { return i.url.toLowerCase().includes(t); },
+            placeholder: t('table.filtrer'), filtrer: function(i,t) { return i.url.toLowerCase().includes(t); },
         });
     }
 
     creerTableauPagine({
         conteneur: document.getElementById('gscFortesTab'),
         colonnes: [
-            {cle:'url', label:'URL', tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
-            {cle:'position_moy', label:'Position moy.', tri:true, render: function(r) { return r.position_moy.toFixed(1); }},
-            {cle:'clics', label:'Clics', tri:true, render: function(r) { return formaterNombre(r.clics); }},
-            {cle:'impressions', label:'Impressions', tri:true, render: function(r) { return formaterNombre(r.impressions); }},
-            {cle:'nb_liens_entrants', label:'Liens entrants', tri:true},
-            {cle:'priorite', label:'Priorité', tri:true, render: function(r) {
+            {cle:'url', label:t('table.url'), tri:true, render: function(r) { return rendreUrlCopiable(r.url); }},
+            {cle:'position_moy', label:t('gsc.position_moy'), tri:true, render: function(r) { return r.position_moy.toFixed(1); }},
+            {cle:'clics', label:t('gsc.clics'), tri:true, render: function(r) { return formaterNombre(r.clics); }},
+            {cle:'impressions', label:t('gsc.impressions'), tri:true, render: function(r) { return formaterNombre(r.impressions); }},
+            {cle:'nb_liens_entrants', label:t('gsc.liens_entrants'), tri:true},
+            {cle:'priorite', label:t('gsc.priorite'), tri:true, render: function(r) {
                 var badge = r.priorite > 1000 ? 'badge-erreur' : (r.priorite > 100 ? 'badge-attention' : 'badge-succes');
                 return '<span class="' + badge + '">' + formaterNombre(Math.round(r.priorite)) + '</span>';
             }},
         ],
         donnees: data.pages || [],
-        placeholder: 'Filtrer par URL…',
+        placeholder: t('table.filtrer_url'),
         filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
         exportNom: 'gsc_fortes_sans_maillage.csv',
     });
 }
 
 function rendreGscMaillees(el, data) {
-    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>Pages qui reçoivent beaucoup de liens internes mais ne génèrent aucune visibilité Google.</p>';
+    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>' + t('gsc.maillees_desc') + '</p>';
     var div = document.createElement('div');
     el.innerHTML = html;
     el.appendChild(div);
@@ -2341,21 +2394,21 @@ function rendreGscMaillees(el, data) {
     creerTableauPagine({
         conteneur: div,
         colonnes: [
-            { cle: 'url', label: 'URL', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url) + '</a>'; } },
-            { cle: 'nb_liens_entrants', label: 'Liens entrants', tri: true },
-            { cle: 'pagerank', label: 'PageRank', tri: true, render: function(r) { return r.pagerank.toFixed(1); } },
-            { cle: 'impressions_gsc', label: 'Impressions GSC', tri: true },
-            { cle: 'diagnostic', label: 'Diagnostic', render: function(r) { return '<span style="font-size:0.8rem;">' + escapeHtml(r.diagnostic) + '</span>'; } },
+            { cle: 'url', label: t('table.url'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url) + '</a>'; } },
+            { cle: 'nb_liens_entrants', label: t('gsc.liens_entrants'), tri: true },
+            { cle: 'pagerank', label: t('gsc.pagerank'), tri: true, render: function(r) { return r.pagerank.toFixed(1); } },
+            { cle: 'impressions_gsc', label: t('gsc.impressions_gsc'), tri: true },
+            { cle: 'diagnostic', label: t('sections.diagnostic'), render: function(r) { return '<span style="font-size:0.8rem;">' + escapeHtml(r.diagnostic) + '</span>'; } },
         ],
         donnees: data.pages || [],
-        placeholder: 'Filtrer par URL…',
+        placeholder: t('table.filtrer_url'),
         filtrer: function(item, terme) { return item.url.toLowerCase().includes(terme); },
         exportNom: 'gsc_maillees_invisibles.csv',
     });
 }
 
 function rendreGscAncreRequete(el, data) {
-    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>Correspondance entre les ancres de liens internes et les requêtes qui génèrent du trafic.</p>';
+    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>' + t('gsc.ancre_requete_desc') + '</p>';
     var div = document.createElement('div');
     el.innerHTML = html;
     el.appendChild(div);
@@ -2363,19 +2416,19 @@ function rendreGscAncreRequete(el, data) {
     creerTableauPagine({
         conteneur: div,
         colonnes: [
-            { cle: 'url', label: 'URL', tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url) + '</a>'; } },
-            { cle: 'top_ancre', label: 'Top ancre interne', tri: true, render: function(r) { return '<strong>' + escapeHtml(r.top_ancre) + '</strong>'; } },
-            { cle: 'top_requete', label: 'Top requête GSC', tri: true, render: function(r) { return escapeHtml(r.top_requete); } },
-            { cle: 'clics', label: 'Clics', tri: true },
-            { cle: 'position', label: 'Position', tri: true, render: function(r) { return r.position.toFixed(1); } },
-            { cle: 'score_correspondance', label: 'Score', tri: true, render: function(r) {
+            { cle: 'url', label: t('table.url'), tri: true, render: function(r) { return '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener">' + tronquerUrl(r.url) + '</a>'; } },
+            { cle: 'top_ancre', label: t('gsc.top_ancre'), tri: true, render: function(r) { return '<strong>' + escapeHtml(r.top_ancre) + '</strong>'; } },
+            { cle: 'top_requete', label: t('gsc.top_requete'), tri: true, render: function(r) { return escapeHtml(r.top_requete); } },
+            { cle: 'clics', label: t('gsc.clics'), tri: true },
+            { cle: 'position', label: t('gsc.position'), tri: true, render: function(r) { return r.position.toFixed(1); } },
+            { cle: 'score_correspondance', label: t('gsc.score'), tri: true, render: function(r) {
                 var badge = r.score_correspondance > 0.5 ? 'badge-succes' : (r.score_correspondance > 0.2 ? 'badge-attention' : 'badge-erreur');
                 return '<span class="' + badge + '">' + (r.score_correspondance * 100).toFixed(0) + '%</span>';
             }},
-            { cle: 'action', label: 'Action', render: function(r) { return '<span style="font-size:0.8rem;">' + escapeHtml(r.action || '') + '</span>'; } },
+            { cle: 'action', label: t('table.action'), render: function(r) { return '<span style="font-size:0.8rem;">' + escapeHtml(r.action || '') + '</span>'; } },
         ],
         donnees: data.pages || [],
-        placeholder: 'Filtrer…',
+        placeholder: t('table.filtrer'),
         filtrer: function(item, terme) {
             return item.url.toLowerCase().includes(terme) ||
                    item.top_ancre.toLowerCase().includes(terme) ||
@@ -2386,11 +2439,11 @@ function rendreGscAncreRequete(el, data) {
 }
 
 function rendreGscBudget(el, data) {
-    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>Distribution du maillage interne vs valeur business de chaque section.</p>';
+    var html = '<p class="text-muted mb-2" style="font-size:0.82rem;"><i class="bi bi-lightbulb me-1"></i>' + t('gsc.budget_desc') + '</p>';
 
     if (data.sections && data.sections.length > 0) {
         html += '<div class="table-responsive"><table class="table"><thead><tr>' +
-            '<th>Section</th><th>Pages</th><th>% maillage</th><th>% trafic GSC</th><th>Ratio</th><th>Diagnostic</th>' +
+            '<th>' + t('sections.section') + '</th><th>' + t('sections.pages') + '</th><th>' + t('gsc.pct_maillage') + '</th><th>' + t('gsc.pct_trafic') + '</th><th>' + t('gsc.ratio') + '</th><th>' + t('sections.diagnostic') + '</th>' +
             '</tr></thead><tbody>';
 
         data.sections.forEach(function(s) {
@@ -2407,7 +2460,7 @@ function rendreGscBudget(el, data) {
 
         html += '</tbody></table></div>';
     } else {
-        html += '<p class="text-muted">Aucune donnée disponible.</p>';
+        html += '<p class="text-muted">' + t('gsc.aucune_donnee') + '</p>';
     }
 
     el.innerHTML = html;
@@ -2426,6 +2479,9 @@ function exporterAvance(type) {
 // ══════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', function() {
+    traduirePage();
+    initLangueSelect();
+
     initialiserDropZoneLiens();
     initialiserDropZoneAncres();
     initialiserOngletsAvances();
