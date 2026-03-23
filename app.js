@@ -222,6 +222,16 @@ function classeScoreSante(score) {
     return 'mauvais';
 }
 
+/**
+ * Extrait le message d'erreur bilingue depuis une réponse JSON serveur.
+ * Priorise erreur_fr/erreur_en selon la langue active, fallback sur erreur.
+ */
+function extraireErreurServeur(data) {
+    if (langueActuelle === 'en' && data.erreur_en) return data.erreur_en;
+    if (langueActuelle === 'fr' && data.erreur_fr) return data.erreur_fr;
+    return data.erreur_fr || data.erreur_en || data.erreur || '';
+}
+
 function fetchJson(url, options, etape) {
     return fetch(url, options)
         .catch(function() {
@@ -236,7 +246,7 @@ function fetchJson(url, options, etape) {
             }
             return response.json().then(function(data) {
                 if (data.erreur) {
-                    throw new Error('[' + etape + '] ' + data.erreur);
+                    throw new Error('[' + etape + '] ' + extraireErreurServeur(data));
                 }
                 return data;
             });
@@ -1050,7 +1060,7 @@ function lancerAnalyse() {
     })
     .then(function(data) {
         masquerSection('sectionProgressionAnalyse');
-        if (data.erreur) throw new Error(data.erreur);
+        if (data.erreur) throw new Error(extraireErreurServeur(data));
         chargerResultatsCannibale(data.jobId);
     })
     .catch(function(err) {
@@ -1065,7 +1075,7 @@ function chargerResultatsCannibale(jobId) {
     fetch(baseUrl + '/results.php?jobId=' + encodeURIComponent(jobId))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.erreur) { alert(t('error.erreur') + ' ' + data.erreur); return; }
+            if (data.erreur) { alert(t('error.erreur') + ' ' + extraireErreurServeur(data)); return; }
             etat.resultats = data;
             afficherResultatsCannibale(data);
         })

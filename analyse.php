@@ -12,7 +12,10 @@ error_reporting(0);
 
 $importId = $_POST['jobId'] ?? '';
 if (!validerJobId($importId)) {
-    repondreErreur('Import ID invalide.', 400);
+    repondreErreur([
+        'fr' => 'Import ID invalide.',
+        'en' => 'Invalid import ID.',
+    ], 400);
 }
 
 $userId = verifierProprietaire($importId);
@@ -20,13 +23,19 @@ $dossierImport = cheminImport($userId, $importId);
 $cheminSqlite = $dossierImport . '/liens.sqlite';
 
 if (!file_exists($cheminSqlite)) {
-    repondreErreur('Base de données introuvable. Veuillez d\'abord importer le fichier de liens.', 404);
+    repondreErreur([
+        'fr' => 'Base de données introuvable. Veuillez d\'abord importer le fichier de liens.',
+        'en' => 'Database not found. Please import the links file first.',
+    ], 404);
 }
 
 // Récupérer le fichier ancres
 $fichier = $_FILES['fichier_ancres'] ?? null;
 if (!$fichier || $fichier['error'] !== UPLOAD_ERR_OK) {
-    repondreErreur('Le fichier ancres est requis.');
+    repondreErreur([
+        'fr' => 'Le fichier ancres est requis.',
+        'en' => 'The anchors file is required.',
+    ]);
 }
 
 $separateur = $_POST['separateur'] ?? ';';
@@ -39,7 +48,10 @@ $avecEntete = ($_POST['avec_entete'] ?? '0') === '1';
 // Lire le fichier ancres
 $handleAncres = fopen($fichier['tmp_name'], 'r');
 if ($handleAncres === false) {
-    repondreErreur('Impossible de lire le fichier ancres.');
+    repondreErreur([
+        'fr' => 'Impossible de lire le fichier ancres.',
+        'en' => 'Unable to read the anchors file.',
+    ]);
 }
 
 // Détecter le BOM UTF-8
@@ -60,7 +72,10 @@ while (($ligne = fgetcsv($handleAncres, 0, $separateur, '"', '\\')) !== false) {
     $numLigne++;
     if (count($ligne) < 2) {
         fclose($handleAncres);
-        repondreErreur("Ligne $numLigne : le fichier doit contenir au moins 2 colonnes (ancre et URL cible).");
+        repondreErreur([
+            'fr' => "Ligne $numLigne : le fichier doit contenir au moins 2 colonnes (ancre et URL cible).",
+            'en' => "Line $numLigne: the file must contain at least 2 columns (anchor and target URL).",
+        ]);
     }
 
     $ancre = normaliserAncre($ligne[0]);
@@ -80,7 +95,10 @@ while (($ligne = fgetcsv($handleAncres, 0, $separateur, '"', '\\')) !== false) {
 fclose($handleAncres);
 
 if (empty($couples)) {
-    repondreErreur('Le fichier ancres est vide ou ne contient aucun couple valide.');
+    repondreErreur([
+        'fr' => 'Le fichier ancres est vide ou ne contient aucun couple valide.',
+        'en' => 'The anchors file is empty or contains no valid pairs.',
+    ]);
 }
 
 // Ouvrir la base SQLite
@@ -89,7 +107,10 @@ try {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $db->exec('PRAGMA journal_mode = WAL');
 } catch (PDOException $e) {
-    repondreErreur('Impossible d\'ouvrir la base de données : ' . $e->getMessage(), 500);
+    repondreErreur([
+        'fr' => 'Impossible d\'ouvrir la base de données : ' . $e->getMessage(),
+        'en' => 'Unable to open the database: ' . $e->getMessage(),
+    ], 500);
 }
 
 // Préparer les requêtes

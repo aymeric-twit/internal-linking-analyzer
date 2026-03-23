@@ -79,11 +79,24 @@ function repondreJson(array $donnees, int $codeHttp = 200): never
 }
 
 /**
- * Envoie une erreur JSON et termine le script.
+ * Envoie une erreur JSON bilingue et termine le script.
+ *
+ * @param string|array{fr: string, en: string} $message Message d'erreur (string = FR seul, array = bilingue)
  */
-function repondreErreur(string $message, int $codeHttp = 400): never
+function repondreErreur(string|array $message, int $codeHttp = 400): never
 {
-    repondreJson(['erreur' => $message], $codeHttp);
+    if (is_array($message)) {
+        repondreJson([
+            'erreur'    => $message['fr'],
+            'erreur_fr' => $message['fr'],
+            'erreur_en' => $message['en'],
+        ], $codeHttp);
+    }
+    repondreJson([
+        'erreur'    => $message,
+        'erreur_fr' => $message,
+        'erreur_en' => $message,
+    ], $codeHttp);
 }
 
 /**

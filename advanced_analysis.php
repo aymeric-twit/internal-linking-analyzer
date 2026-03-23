@@ -18,25 +18,38 @@ if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'advanced_analysis.php' && $
     $type = $_GET['type'] ?? '';
 
     if (!validerJobId($importId)) {
-        repondreErreur('Import ID invalide.', 400);
+        repondreErreur([
+            'fr' => 'Import ID invalide.',
+            'en' => 'Invalid import ID.',
+        ], 400);
     }
 
     $userId = verifierProprietaire($importId);
     $cheminSqlite = cheminImport($userId, $importId) . '/liens.sqlite';
 
     if (!file_exists($cheminSqlite)) {
-        repondreErreur('Base de données introuvable.', 404);
+        repondreErreur([
+            'fr' => 'Base de données introuvable.',
+            'en' => 'Database not found.',
+        ], 404);
     }
 
     $typesValides = ['orphelins', 'diversite_ancres', 'hubs_autorites', 'distribution_sections', 'pagerank', 'dashboard', 'liste_ancres', 'cannibale_auto', 'detail_ancre'];
     if (!in_array($type, $typesValides, true)) {
-        repondreErreur('Type d\'analyse invalide. Valeurs : ' . implode(', ', $typesValides));
+        $valeursStr = implode(', ', $typesValides);
+        repondreErreur([
+            'fr' => 'Type d\'analyse invalide. Valeurs : ' . $valeursStr,
+            'en' => 'Invalid analysis type. Values: ' . $valeursStr,
+        ]);
     }
 
     if ($type === 'detail_ancre') {
         $ancre = $_GET['ancre'] ?? '';
         if ($ancre === '') {
-            repondreErreur('Paramètre "ancre" requis.');
+            repondreErreur([
+                'fr' => 'Paramètre "ancre" requis.',
+                'en' => 'Parameter "ancre" required.',
+            ]);
         }
         $db = new PDO('sqlite:' . $cheminSqlite);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

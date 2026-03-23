@@ -38,14 +38,20 @@ if ($action === 'verifier') {
 // ── Analyses croisées GSC × maillage ────────────────────
 
 if (!validerJobId($importId)) {
-    repondreErreur('Import ID invalide.', 400);
+    repondreErreur([
+        'fr' => 'Import ID invalide.',
+        'en' => 'Invalid import ID.',
+    ], 400);
 }
 
 $userId = verifierProprietaire($importId);
 $cheminSqlite = cheminImport($userId, $importId) . '/liens.sqlite';
 
 if (!file_exists($cheminSqlite)) {
-    repondreErreur('Base de données de liens introuvable.', 404);
+    repondreErreur([
+        'fr' => 'Base de données de liens introuvable.',
+        'en' => 'Links database not found.',
+    ], 404);
 }
 
 $type = $_GET['type'] ?? '';
@@ -55,15 +61,24 @@ $dateFin = $_GET['dateFin'] ?? '';
 
 $typesValides = ['fortes_sans_maillage', 'maillees_invisibles', 'ancre_vs_requete', 'budget_sections'];
 if (!in_array($type, $typesValides, true)) {
-    repondreErreur('Type d\'analyse GSC invalide.', 400);
+    repondreErreur([
+        'fr' => 'Type d\'analyse GSC invalide.',
+        'en' => 'Invalid GSC analysis type.',
+    ], 400);
 }
 
 if ($siteId <= 0 || $dateDebut === '' || $dateFin === '') {
-    repondreErreur('Paramètres siteId, dateDebut et dateFin requis.', 400);
+    repondreErreur([
+        'fr' => 'Paramètres siteId, dateDebut et dateFin requis.',
+        'en' => 'Parameters siteId, dateDebut and dateFin are required.',
+    ], 400);
 }
 
 if (!gscDisponible()) {
-    repondreErreur('Search Console non disponible.', 400);
+    repondreErreur([
+        'fr' => 'Search Console non disponible.',
+        'en' => 'Search Console not available.',
+    ], 400);
 }
 
 // Charger les données GSC et SQLite

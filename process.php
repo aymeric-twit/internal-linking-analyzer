@@ -17,13 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (int) $_SERVER['CONTENT_LENGTH'] > 0
 ) {
     $tailleDemande = (int) $_SERVER['CONTENT_LENGTH'];
-    repondreErreur(sprintf(
-        'Le fichier (%s) dépasse la limite du serveur (%s). '
-        . 'Pour les gros fichiers : uploadez le CSV sur le serveur via SFTP (FileZilla, etc.) '
-        . 'puis utilisez le champ "Chemin serveur" en indiquant le chemin complet.',
-        formaterOctets($tailleDemande),
-        ini_get('post_max_size') ?: '8M'
-    ), 413);
+    $taille = formaterOctets($tailleDemande);
+    $limite = ini_get('post_max_size') ?: '8M';
+    repondreErreur([
+        'fr' => sprintf(
+            'Le fichier (%s) dépasse la limite du serveur (%s). '
+            . 'Pour les gros fichiers : uploadez le CSV sur le serveur via SFTP (FileZilla, etc.) '
+            . 'puis utilisez le champ "Chemin serveur" en indiquant le chemin complet.',
+            $taille, $limite
+        ),
+        'en' => sprintf(
+            'The file (%s) exceeds the server limit (%s). '
+            . 'For large files: upload the CSV to the server via SFTP (FileZilla, etc.) '
+            . 'then use the "Server path" field with the full path.',
+            $taille, $limite
+        ),
+    ], 413);
 }
 
 // Nettoyage
@@ -36,7 +45,10 @@ $importId = bin2hex(random_bytes(12));
 $dossierImport = cheminImport($userId, $importId);
 
 if (!mkdir($dossierImport, 0755, true)) {
-    repondreErreur('Impossible de créer le répertoire de l\'import.', 500);
+    repondreErreur([
+        'fr' => 'Impossible de créer le répertoire de l\'import.',
+        'en' => 'Unable to create the import directory.',
+    ], 500);
 }
 
 $cheminProgression = $dossierImport . '/progress.json';
@@ -49,7 +61,10 @@ $colAncre = filter_input(INPUT_POST, 'col_ancre', FILTER_VALIDATE_INT);
 if ($colSource === null || $colSource === false
     || $colDestination === null || $colDestination === false
     || $colAncre === null || $colAncre === false) {
-    repondreErreur('Mapping de colonnes invalide.');
+    repondreErreur([
+        'fr' => 'Mapping de colonnes invalide.',
+        'en' => 'Invalid column mapping.',
+    ]);
 }
 
 // Filtre optionnel (ex: Link Position = "Content")
@@ -65,36 +80,57 @@ $nomFichier = 'liens.csv';
 if ($cheminServeur !== '') {
     $cheminReel = realpath($cheminServeur);
     if ($cheminReel === false || !is_file($cheminReel) || !is_readable($cheminReel)) {
-        repondreErreur('Fichier introuvable ou non lisible sur le serveur.');
+        repondreErreur([
+            'fr' => 'Fichier introuvable ou non lisible sur le serveur.',
+            'en' => 'File not found or not readable on the server.',
+        ]);
     }
     $extension = strtolower(pathinfo($cheminReel, PATHINFO_EXTENSION));
     if (!in_array($extension, ['csv', 'txt'], true)) {
-        repondreErreur('Le fichier doit être un CSV (.csv ou .txt).');
+        repondreErreur([
+            'fr' => 'Le fichier doit être un CSV (.csv ou .txt).',
+            'en' => 'The file must be a CSV (.csv or .txt).',
+        ]);
     }
     $cheminCsv = $cheminReel;
     $nomFichier = basename($cheminReel);
 } else {
     $fichier = $_FILES['fichier_liens'] ?? null;
     if (!$fichier || $fichier['error'] !== UPLOAD_ERR_OK) {
-        $messages = [
+        $messagesFr = [
             UPLOAD_ERR_INI_SIZE => 'Le fichier dépasse la taille maximale autorisée par le serveur.',
             UPLOAD_ERR_FORM_SIZE => 'Le fichier dépasse la taille maximale autorisée.',
             UPLOAD_ERR_PARTIAL => 'Le fichier n\'a été que partiellement uploadé.',
             UPLOAD_ERR_NO_FILE => 'Aucun fichier sélectionné.',
         ];
+        $messagesEn = [
+            UPLOAD_ERR_INI_SIZE => 'The file exceeds the maximum size allowed by the server.',
+            UPLOAD_ERR_FORM_SIZE => 'The file exceeds the maximum allowed size.',
+            UPLOAD_ERR_PARTIAL => 'The file was only partially uploaded.',
+            UPLOAD_ERR_NO_FILE => 'No file selected.',
+        ];
         $codeErreur = $fichier['error'] ?? UPLOAD_ERR_NO_FILE;
-        repondreErreur($messages[$codeErreur] ?? 'Erreur lors de l\'upload.');
+        repondreErreur([
+            'fr' => $messagesFr[$codeErreur] ?? 'Erreur lors de l\'upload.',
+            'en' => $messagesEn[$codeErreur] ?? 'Error during upload.',
+        ]);
     }
 
     $extension = strtolower(pathinfo($fichier['name'], PATHINFO_EXTENSION));
     if (!in_array($extension, ['csv', 'txt'], true)) {
-        repondreErreur('Le fichier doit être un CSV (.csv ou .txt).');
+        repondreErreur([
+            'fr' => 'Le fichier doit être un CSV (.csv ou .txt).',
+            'en' => 'The file must be a CSV (.csv or .txt).',
+        ]);
     }
 
     $cheminCsv = $dossierImport . '/liens_upload.csv';
     $nomFichier = $fichier['name'];
     if (!move_uploaded_file($fichier['tmp_name'], $cheminCsv)) {
-        repondreErreur('Impossible de déplacer le fichier uploadé.', 500);
+        repondreErreur([
+            'fr' => 'Impossible de déplacer le fichier uploadé.',
+            'en' => 'Unable to move the uploaded file.',
+        ], 500);
     }
 }
 

@@ -9,11 +9,17 @@ $importId = $_GET['jobId'] ?? '';
 $type = $_GET['type'] ?? '';
 
 if (!validerJobId($importId)) {
-    repondreErreur('Import ID invalide.', 400);
+    repondreErreur([
+        'fr' => 'Import ID invalide.',
+        'en' => 'Invalid import ID.',
+    ], 400);
 }
 
 if (!in_array($type, ['resume', 'detail', 'actions', 'pagerank', 'orphelins', 'diversite', 'hubs', 'ancres', 'cannibale_auto'], true)) {
-    repondreErreur('Type d\'export invalide.', 400);
+    repondreErreur([
+        'fr' => 'Type d\'export invalide.',
+        'en' => 'Invalid export type.',
+    ], 400);
 }
 
 $userId = verifierProprietaire($importId);
@@ -23,7 +29,10 @@ $dossierImport = cheminImport($userId, $importId);
 if (in_array($type, ['pagerank', 'orphelins', 'diversite', 'hubs', 'ancres', 'cannibale_auto'], true)) {
     $cheminSqlite = $dossierImport . '/liens.sqlite';
     if (!file_exists($cheminSqlite)) {
-        repondreErreur('Base de données introuvable.', 404);
+        repondreErreur([
+            'fr' => 'Base de données introuvable.',
+            'en' => 'Database not found.',
+        ], 404);
     }
     require_once __DIR__ . '/advanced_analysis.php';
     exporterAnalyseAvanceeCsv($cheminSqlite, $type);
@@ -33,17 +42,26 @@ if (in_array($type, ['pagerank', 'orphelins', 'diversite', 'hubs', 'ancres', 'ca
 // Types de cannibalisation classiques
 $cheminResultats = $dossierImport . '/resultats.json';
 if (!file_exists($cheminResultats)) {
-    repondreErreur('Résultats introuvables.', 404);
+    repondreErreur([
+        'fr' => 'Résultats introuvables.',
+        'en' => 'Results not found.',
+    ], 404);
 }
 
 $contenu = file_get_contents($cheminResultats);
 if ($contenu === false) {
-    repondreErreur('Impossible de lire les résultats.', 500);
+    repondreErreur([
+        'fr' => 'Impossible de lire les résultats.',
+        'en' => 'Unable to read results.',
+    ], 500);
 }
 
 $donnees = json_decode($contenu, true);
 if (!is_array($donnees) || empty($donnees['resultats'])) {
-    repondreErreur('Aucun résultat à exporter.', 404);
+    repondreErreur([
+        'fr' => 'Aucun résultat à exporter.',
+        'en' => 'No results to export.',
+    ], 404);
 }
 
 $resultats = $donnees['resultats'];

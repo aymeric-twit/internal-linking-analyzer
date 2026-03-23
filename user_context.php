@@ -164,7 +164,10 @@ function verifierProprietaire(string $importId): int
         }
     }
 
-    repondreErreur('Accès refusé : cet import ne vous appartient pas.', 403);
+    repondreErreur([
+        'fr' => 'Accès refusé : cet import ne vous appartient pas.',
+        'en' => 'Access denied: this import does not belong to you.',
+    ], 403);
 }
 
 /**

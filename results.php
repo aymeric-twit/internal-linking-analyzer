@@ -10,19 +10,28 @@ header('X-Content-Type-Options: nosniff');
 
 $importId = $_GET['jobId'] ?? '';
 if (!validerJobId($importId)) {
-    repondreErreur('Import ID invalide.', 400);
+    repondreErreur([
+        'fr' => 'Import ID invalide.',
+        'en' => 'Invalid import ID.',
+    ], 400);
 }
 
 $userId = verifierProprietaire($importId);
 $cheminResultats = cheminImport($userId, $importId) . '/resultats.json';
 
 if (!file_exists($cheminResultats)) {
-    repondreErreur('Résultats introuvables. Lancez d\'abord l\'analyse.', 404);
+    repondreErreur([
+        'fr' => 'Résultats introuvables. Lancez d\'abord l\'analyse.',
+        'en' => 'Results not found. Please run the analysis first.',
+    ], 404);
 }
 
 $contenu = file_get_contents($cheminResultats);
 if ($contenu === false) {
-    repondreErreur('Impossible de lire les résultats.', 500);
+    repondreErreur([
+        'fr' => 'Impossible de lire les résultats.',
+        'en' => 'Unable to read results.',
+    ], 500);
 }
 
 echo $contenu;

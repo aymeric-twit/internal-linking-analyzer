@@ -22,20 +22,29 @@ if ($action === 'init') {
     $nbChunks = (int) ($_POST['nb_chunks'] ?? 0);
 
     if ($nomFichier === '' || $tailleTotale <= 0 || $nbChunks <= 0) {
-        repondreErreur('Paramètres d\'initialisation invalides.');
+        repondreErreur([
+            'fr' => 'Paramètres d\'initialisation invalides.',
+            'en' => 'Invalid initialization parameters.',
+        ]);
     }
 
     // Vérifier l'extension
     $extension = strtolower(pathinfo($nomFichier, PATHINFO_EXTENSION));
     if (!in_array($extension, ['csv', 'txt'], true)) {
-        repondreErreur('Le fichier doit être un CSV (.csv ou .txt).');
+        repondreErreur([
+            'fr' => 'Le fichier doit être un CSV (.csv ou .txt).',
+            'en' => 'The file must be a CSV (.csv or .txt).',
+        ]);
     }
 
     $importId = bin2hex(random_bytes(12));
     $dossierImport = cheminImport($userId, $importId);
 
     if (!mkdir($dossierImport, 0755, true)) {
-        repondreErreur('Impossible de créer le répertoire de l\'import.', 500);
+        repondreErreur([
+            'fr' => 'Impossible de créer le répertoire de l\'import.',
+            'en' => 'Unable to create the import directory.',
+        ], 500);
     }
 
     // Créer le sous-dossier pour les chunks
@@ -75,11 +84,17 @@ if ($action === 'chunk') {
     $indexChunk = filter_input(INPUT_POST, 'index_chunk', FILTER_VALIDATE_INT);
 
     if (!validerJobId($importId)) {
-        repondreErreur('Import ID invalide.');
+        repondreErreur([
+            'fr' => 'Import ID invalide.',
+            'en' => 'Invalid import ID.',
+        ]);
     }
 
     if ($indexChunk === null || $indexChunk === false || $indexChunk < 0) {
-        repondreErreur('Index de chunk invalide.');
+        repondreErreur([
+            'fr' => 'Index de chunk invalide.',
+            'en' => 'Invalid chunk index.',
+        ]);
     }
 
     $userId = obtenirUserId();
@@ -87,18 +102,27 @@ if ($action === 'chunk') {
     $cheminMeta = $dossierImport . '/upload_meta.json';
 
     if (!file_exists($cheminMeta)) {
-        repondreErreur('Import introuvable.', 404);
+        repondreErreur([
+            'fr' => 'Import introuvable.',
+            'en' => 'Import not found.',
+        ], 404);
     }
 
     $fichier = $_FILES['chunk'] ?? null;
     if (!$fichier || $fichier['error'] !== UPLOAD_ERR_OK) {
-        repondreErreur('Chunk manquant ou corrompu.');
+        repondreErreur([
+            'fr' => 'Chunk manquant ou corrompu.',
+            'en' => 'Missing or corrupted chunk.',
+        ]);
     }
 
     // Sauvegarder le chunk
     $cheminChunk = $dossierImport . '/chunks/' . str_pad((string) $indexChunk, 6, '0', STR_PAD_LEFT);
     if (!move_uploaded_file($fichier['tmp_name'], $cheminChunk)) {
-        repondreErreur('Impossible de sauvegarder le chunk.', 500);
+        repondreErreur([
+            'fr' => 'Impossible de sauvegarder le chunk.',
+            'en' => 'Unable to save the chunk.',
+        ], 500);
     }
 
     // Mettre à jour le compteur de chunks reçus
@@ -129,13 +153,19 @@ if ($action === 'assemble') {
     $colAncre = filter_input(INPUT_POST, 'col_ancre', FILTER_VALIDATE_INT);
 
     if (!validerJobId($importId)) {
-        repondreErreur('Import ID invalide.');
+        repondreErreur([
+            'fr' => 'Import ID invalide.',
+            'en' => 'Invalid import ID.',
+        ]);
     }
 
     if ($colSource === null || $colSource === false
         || $colDestination === null || $colDestination === false
         || $colAncre === null || $colAncre === false) {
-        repondreErreur('Mapping de colonnes invalide.');
+        repondreErreur([
+            'fr' => 'Mapping de colonnes invalide.',
+            'en' => 'Invalid column mapping.',
+        ]);
     }
 
     $colFiltreRaw = $_POST['col_filtre'] ?? '';
@@ -147,17 +177,19 @@ if ($action === 'assemble') {
     $cheminMeta = $dossierImport . '/upload_meta.json';
 
     if (!file_exists($cheminMeta)) {
-        repondreErreur('Import introuvable.', 404);
+        repondreErreur([
+            'fr' => 'Import introuvable.',
+            'en' => 'Import not found.',
+        ], 404);
     }
 
     $meta = json_decode(file_get_contents($cheminMeta), true);
 
     if ($meta['chunks_recus'] < $meta['nb_chunks']) {
-        repondreErreur(sprintf(
-            'Upload incomplet : %d/%d chunks reçus.',
-            $meta['chunks_recus'],
-            $meta['nb_chunks']
-        ));
+        repondreErreur([
+            'fr' => sprintf('Upload incomplet : %d/%d chunks reçus.', $meta['chunks_recus'], $meta['nb_chunks']),
+            'en' => sprintf('Incomplete upload: %d/%d chunks received.', $meta['chunks_recus'], $meta['nb_chunks']),
+        ]);
     }
 
     // Assembler les chunks dans le fichier final
@@ -165,7 +197,10 @@ if ($action === 'assemble') {
     $outputHandle = fopen($cheminCsv, 'wb');
 
     if ($outputHandle === false) {
-        repondreErreur('Impossible de créer le fichier assemblé.', 500);
+        repondreErreur([
+            'fr' => 'Impossible de créer le fichier assemblé.',
+            'en' => 'Unable to create the assembled file.',
+        ], 500);
     }
 
     $dossierChunks = $dossierImport . '/chunks';
@@ -176,7 +211,11 @@ if ($action === 'assemble') {
         $chunkHandle = fopen($chunkPath, 'rb');
         if ($chunkHandle === false) {
             fclose($outputHandle);
-            repondreErreur('Erreur lors de la lecture du chunk : ' . basename($chunkPath), 500);
+            $nomChunk = basename($chunkPath);
+            repondreErreur([
+                'fr' => 'Erreur lors de la lecture du chunk : ' . $nomChunk,
+                'en' => 'Error reading chunk: ' . $nomChunk,
+            ], 500);
         }
         while (!feof($chunkHandle)) {
             fwrite($outputHandle, fread($chunkHandle, 8192));
@@ -243,7 +282,13 @@ if ($action === 'assemble') {
 
 // Action inconnue
 if ($action === '') {
-    repondreErreur('Paramètre "action" requis (init, chunk, assemble).');
+    repondreErreur([
+        'fr' => 'Paramètre "action" requis (init, chunk, assemble).',
+        'en' => 'Parameter "action" required (init, chunk, assemble).',
+    ]);
 }
 
-repondreErreur('Action inconnue : ' . $action);
+repondreErreur([
+    'fr' => 'Action inconnue : ' . $action,
+    'en' => 'Unknown action: ' . $action,
+]);

@@ -12,19 +12,28 @@ header('X-Content-Type-Options: nosniff');
 $importId = $_GET['jobId'] ?? '';
 
 if (!validerJobId($importId)) {
-    repondreErreur('Import ID invalide.', 400);
+    repondreErreur([
+        'fr' => 'Import ID invalide.',
+        'en' => 'Invalid import ID.',
+    ], 400);
 }
 
 $userId = obtenirUserId();
 $cheminProgression = cheminImport($userId, $importId) . '/progress.json';
 
 if (!file_exists($cheminProgression)) {
-    repondreErreur('Import introuvable.', 404);
+    repondreErreur([
+        'fr' => 'Import introuvable.',
+        'en' => 'Import not found.',
+    ], 404);
 }
 
 $contenu = file_get_contents($cheminProgression);
 if ($contenu === false) {
-    repondreErreur('Impossible de lire la progression.', 500);
+    repondreErreur([
+        'fr' => 'Impossible de lire la progression.',
+        'en' => 'Unable to read progress.',
+    ], 500);
 }
 
 echo $contenu;

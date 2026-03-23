@@ -32,19 +32,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $importId = $_POST['id'] ?? '';
 
         if (!validerJobId($importId)) {
-            repondreErreur('Import ID invalide.');
+            repondreErreur([
+                'fr' => 'Import ID invalide.',
+                'en' => 'Invalid import ID.',
+            ]);
         }
 
         $resultat = supprimerImportComplet($userId, $importId);
 
         if (!$resultat) {
-            repondreErreur('Import introuvable.', 404);
+            repondreErreur([
+                'fr' => 'Import introuvable.',
+                'en' => 'Import not found.',
+            ], 404);
         }
 
-        repondreJson(['succes' => true, 'message' => 'Import supprimé.']);
+        repondreJson([
+            'succes' => true,
+            'message' => 'Import supprimé.',
+            'message_fr' => 'Import supprimé.',
+            'message_en' => 'Import deleted.',
+        ]);
     }
 
-    repondreErreur('Action inconnue.');
+    repondreErreur([
+        'fr' => 'Action inconnue.',
+        'en' => 'Unknown action.',
+    ]);
 }
 
-repondreErreur('Méthode non supportée.', 405);
+repondreErreur([
+    'fr' => 'Méthode non supportée.',
+    'en' => 'Method not supported.',
+], 405);
